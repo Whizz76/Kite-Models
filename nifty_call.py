@@ -5,13 +5,13 @@ print("https://api.icicidirect.com/apiuser/login?api_key="+urllib.parse.quote_pl
 
 isec = BreezeConnect(api_key="992248823I8852u1321hb780!36n9C06")
 
-isec.generate_session(api_secret="28k11n7t26q!X195)912E3A62048838u", session_token="36593540")
+isec.generate_session(api_secret="28k11n7t26q!X195)912E3A62048838u", session_token="36723294")
 
 # initializing input variables like expiry date and strike price
 
-start_date = "2022-04-19T07:00:00.000Z"
+start_date = "2022-04-19T09:00:00.000Z"
 
-end_date = "2022-04-19T18:00:00.000Z"
+end_date = "2022-04-19T11:00:00.000Z"
 
  
 
@@ -49,4 +49,4 @@ call_data = pd.DataFrame(data1["Success"])
 
 call_data.to_csv(index=False)
 
-call_data.to_csv('Nifty_call_data.csv')
+call_data.to_csv('Nifty_call_data_check.csv')
