@@ -46,7 +46,7 @@ def is_file_present(folder_path, file_name):
     file_path = os.path.join(folder_path, file_name)
     return os.path.exists(file_path)
 
-
+total_net=0
 # Getting the output data
 
 for it in range(len(index_data)):
@@ -191,6 +191,7 @@ for it in range(len(index_data)):
                     # Getting the net loss/gain
 
                     net=(call_start-call_stop)+(put_start-put_stop)
+                    total_net+=net
                     net_loss=None
                     net_gain=None
                     if(net<0):
@@ -214,3 +215,5 @@ for it in range(len(index_data)):
 print(output_data)
 output_data.to_csv(index=False)
 output_data.to_csv("data"+str(stoploss*100)+".csv")
+print(total_net)
+# 8258.07500000001
