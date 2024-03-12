@@ -2,18 +2,18 @@ import pandas as pd
 from datetime import datetime
 
 strike_price=40700
-day="02-03-2023"
-
+expiry_day="02-03-2023"
+date="02-03-2023"
 # reversed_day=''.join(reversed(day))
 
-input_date=day.split("-")
+input_date=expiry_day.split("-")
 input_date_string=''.join(reversed(input_date))
-reversed_day='-'.join(reversed(input_date))
+reversed_day='-'.join(reversed(date.split("-")))
 
 # Reading the call and put data
 
-call_data=pd.read_csv("./Data_BNF/Data_BNF/"+day+"/BNF"+input_date_string+str(strike_price)+"CE.csv")
-put_data=pd.read_csv("./Data_BNF/Data_BNF/"+day+"/BNF"+input_date_string+str(strike_price)+"PE.csv")
+call_data=pd.read_csv("./Data_BNF/Data_BNF/"+expiry_day+"/BNF"+input_date_string+str(strike_price)+"CE.csv")
+put_data=pd.read_csv("./Data_BNF/Data_BNF/"+expiry_day+"/BNF"+input_date_string+str(strike_price)+"PE.csv")
 
 # Getting the call and put data during the start i.e here from 10 AM
 

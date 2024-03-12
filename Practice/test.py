@@ -14,5 +14,8 @@ for it in range(len(index_data)):
         year=date[0:4].strip()
         print(date,time,month,year,strike_price,strike_price_500)
 i=0
-df.loc[i,"datetime"]=10
+df.loc[len(df),"datetime"]=10
+df.loc[len(df),"datetime"]=20
+df.to_csv(index=False)
+df.to_csv("demo.csv")
 print(df)
