@@ -5,7 +5,7 @@ import calendar
 
 # Reading the index data of 1 year
 
-file_name="Bnf_index_data_(16Aug'21To30Aug'22).csv"
+file_name="Bnf_index_data_(30Aug'22To30Aug'23).csv"
 index_data=pd.read_csv(file_name)
 
 # Get the folder names
@@ -45,7 +45,6 @@ def is_file_present(folder_path, file_name):
 
 # Defining the output data
 
-output_data=[]
 
 # Define the range for time
 start_time = datetime.strptime('09:20', '%H:%M')
@@ -54,7 +53,7 @@ time_step = timedelta(minutes=1)  # Assuming 1-minute intervals
 
 # Define the range for stoploss (percentage)
 min_percentage = 5
-max_percentage = 60
+max_percentage = 50
 percentage_step = 1  # Assuming 1% intervals
 
 time_values=[]
@@ -72,6 +71,7 @@ while current_time <= end_time:
 stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step))
 
 for time in time_values:
+    output_data=[]
     for stoploss_val in stoploss_values:
 
         stoploss=stoploss_val*0.01
@@ -81,7 +81,6 @@ for time in time_values:
             opening_time=index_data.loc[it,"datetime"]
             time_value=opening_time.split(" ")[1][0:5].strip()
             date='-'.join(reversed(opening_time.split(" ")[0][0:10].split('-')))
-
             if(datetime.strptime(time,"%H:%M")!=datetime.strptime(time_value,"%H:%M")):
                 continue
             strike_price=index_data.loc[it,"open"]
@@ -96,6 +95,7 @@ for time in time_values:
             if(len(expiry_date)==0):
                 print("Data Absent")
             else:
+                # print(expiry_date)
                 expiry_day=expiry_date
                 date=date
                 # reversed_day=''.join(reversed(day))
@@ -143,10 +143,13 @@ for time in time_values:
                         call_stop=call_start*(1+stoploss)
                         put_stop=put_start*(1+stoploss)
 
+                        open_c=call_data[call_data["datetime"].str.contains(reversed_day)]
+                        open_p=put_data[put_data["datetime"].str.contains(reversed_day)]
+
                         # Getting the call and put data on that particular day after 10 AM
 
-                        call_data_1=call_data[call_data['datetime'].apply(lambda x: datetime.strptime(x.split(' ')[1][0:5],"%H:%M")) >= datetime.strptime(time,"%H:%M")]
-                        put_data_1=put_data[put_data['datetime'].apply(lambda x: datetime.strptime(x.split(' ')[1][0:5],"%H:%M")) >= datetime.strptime(time,"%H:%M")]
+                        call_data_1=open_c[open_c['datetime'].apply(lambda x: datetime.strptime(x.split(' ')[1][0:5],"%H:%M")) >= datetime.strptime(time,"%H:%M")]
+                        put_data_1=open_p[open_p['datetime'].apply(lambda x: datetime.strptime(x.split(' ')[1][0:5],"%H:%M")) >= datetime.strptime(time,"%H:%M")]
                         call_data_1=call_data_1.reset_index(drop=True)
                         put_data_1=put_data_1.reset_index(drop=True)
 
@@ -194,11 +197,19 @@ for time in time_values:
                             net_loss=net
                         elif (net>0):
                             net_gain=net
+                        if([date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
+                                            put_start,put_stop,put_stop_time,net,net_gain,net_loss] in output_data):
+                            continue
                         print(net,time,stoploss)
-                        output_data.append([date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
+                        output_data.append([date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
                                             put_start,put_stop,put_stop_time,net,net_gain,net_loss])
                         
-output_df=pd.DataFrame(output_data,columns=["date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
+    output_df=pd.DataFrame(output_data,columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
                                             "put_stop","put_stop_time","net","net_gain","net_loss"])
+    folder_path="outputFiles"
+    csv_file_name=f'30Aug22To30Aug23_{time}.csv'
+    csv_file_name=csv_file_name.replace(':','')
+    output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)
+        
 
-output_df.to_csv("outputFile.csv",index=False)
+# output_df.to_csv("outputFile_30Aug'22To30Aug'23.csv",index=False)
