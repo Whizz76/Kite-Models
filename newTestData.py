@@ -47,7 +47,7 @@ def is_file_present(folder_path, file_name):
 
 
 # Define the range for time
-start_time = datetime.strptime('09:20', '%H:%M')
+start_time = datetime.strptime('09:24', '%H:%M')
 end_time = datetime.strptime('12:00', '%H:%M')
 time_step = timedelta(minutes=1)  # Assuming 1-minute intervals
 
@@ -72,6 +72,7 @@ stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step
 
 for time in time_values:
     output_data=[]
+    output_df=None
     for stoploss_val in stoploss_values:
 
         stoploss=stoploss_val*0.01
@@ -81,12 +82,15 @@ for time in time_values:
             opening_time=index_data.loc[it,"datetime"]
             time_value=opening_time.split(" ")[1][0:5].strip()
             date='-'.join(reversed(opening_time.split(" ")[0][0:10].split('-')))
+
             if(datetime.strptime(time,"%H:%M")!=datetime.strptime(time_value,"%H:%M")):
                 continue
+
+            # Getting the strike price from the index data
             strike_price=index_data.loc[it,"open"]
             actual_strike_price=strike_price
-            strike_price=(int)((strike_price//1000)*1000)
-            strike_price_500=(int)(strike_price+500.0)
+            strike_price=(int)((strike_price//100)*100)
+            strike_price_500=strike_price+500
 
             # Getting the expiry date
 
@@ -95,14 +99,31 @@ for time in time_values:
             if(len(expiry_date)==0):
                 print("Data Absent")
             else:
-                # print(expiry_date)
                 expiry_day=expiry_date
                 date=date
-                # reversed_day=''.join(reversed(day))
 
                 input_date=expiry_day.split("-")
                 input_date_string=''.join(reversed(input_date))
                 reversed_day='-'.join(reversed(date.split("-")))
+                folder_path="../Data_BNF/Data_BNF/"+expiry_day
+
+                price=strike_price
+
+                # Getting the ranges for strike price
+
+                for it in range(0,5):
+                    strike_price=price-(it*100)
+                    call_path="BNF"+input_date_string+str(strike_price)+"CE.csv"
+                    put_path="BNF"+input_date_string+str(strike_price)+"PE.csv"
+                    if(is_file_present(folder_path,call_path) and is_file_present(folder_path,put_path)):
+                        break
+
+                for it in range(1,6):
+                    strike_price_500=price+(it*100)
+                    call_path="BNF"+input_date_string+str(strike_price_500)+"CE.csv"
+                    put_path="BNF"+input_date_string+str(strike_price_500)+"PE.csv"
+                    if(is_file_present(folder_path,call_path) and is_file_present(folder_path,put_path)):
+                        break
 
                 for itr in range(0,2):
                     if (itr==1):
@@ -110,7 +131,6 @@ for time in time_values:
 
                     call_path="BNF"+input_date_string+str(strike_price)+"CE.csv"
                     put_path="BNF"+input_date_string+str(strike_price)+"PE.csv"
-                    folder_path="../Data_BNF/Data_BNF/"+expiry_day
                     # print(folder_path,put_path,call_path)
 
                     if(is_file_present(folder_path,call_path) and is_file_present(folder_path,put_path)):
@@ -207,7 +227,7 @@ for time in time_values:
     output_df=pd.DataFrame(output_data,columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
                                             "put_stop","put_stop_time","net","net_gain","net_loss"])
     folder_path="outputFiles"
-    csv_file_name=f'30Aug22To30Aug23_{time}.csv'
+    csv_file_name=f'30Aug22_To_30Aug23_{time}.csv'
     csv_file_name=csv_file_name.replace(':','')
     output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)
         
