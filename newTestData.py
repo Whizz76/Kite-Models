@@ -31,7 +31,7 @@ sorted_dates = get_folder_names(directory)
 def get_expiry_date(input_date):
     for date in sorted_dates:
         in_date=datetime.strptime(input_date,"%d-%m-%Y")
-        if(date>=in_date):
+        if(date==in_date):
             # print(date.strftime("%d-%m-%Y"))
             return date.strftime("%d-%m-%Y")
     return ""
@@ -47,7 +47,7 @@ def is_file_present(folder_path, file_name):
 
 
 # Define the range for time
-start_time = datetime.strptime('09:29', '%H:%M')
+start_time = datetime.strptime('09:34', '%H:%M')
 end_time = datetime.strptime('12:00', '%H:%M')
 time_step = timedelta(minutes=1)  # Assuming 1-minute intervals
 
@@ -72,7 +72,9 @@ stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step
 
 for time in time_values:
     output_data=[]
+    output_data_100=[]
     output_df=None
+    output_df_100=None
     for stoploss_val in stoploss_values:
 
         stoploss=stoploss_val*0.01
@@ -221,15 +223,24 @@ for time in time_values:
                                             put_start,put_stop,put_stop_time,net,net_gain,net_loss] in output_data):
                             continue
                         print(net,time,stoploss)
-                        output_data.append([date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
-                                            put_start,put_stop,put_stop_time,net,net_gain,net_loss])
+                        data_output=[date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
+                                            put_start,put_stop,put_stop_time,net,net_gain,net_loss]
+                        if(itr==1):
+                            output_data_100.append(data_output)
+                        else:
+                            output_data.append(data_output)
+    columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
+                                            "put_stop","put_stop_time","net","net_gain","net_loss"]
                         
-    output_df=pd.DataFrame(output_data,columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
-                                            "put_stop","put_stop_time","net","net_gain","net_loss"])
+    output_df=pd.DataFrame(output_data,columns=columns)
+    output_df_100=pd.DataFrame(output_data_100,columns=columns)
     folder_path="outputFiles"
     csv_file_name=f'30Aug22_To_30Aug23_{time}.csv'
+    csv_file_name_100=f'30Aug22_To_30Aug23_{time}_100.csv'
     csv_file_name=csv_file_name.replace(':','')
+    csv_file_name_100=csv_file_name_100.replace(':','')
     output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)
+    output_df_100.to_csv(os.path.join(folder_path,csv_file_name_100),index=False)
         
 
 # output_df.to_csv("outputFile_30Aug'22To30Aug'23.csv",index=False)
