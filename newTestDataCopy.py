@@ -5,9 +5,11 @@ import calendar
 
 # Reading the index data of 1 year
 
-file_name="Bnf_index_data_(30Aug'22To30Aug'23).csv"
-index_data=pd.read_csv(file_name)
-
+file_name="Bnf_index_data_(16Aug'21To30Aug'22).csv"
+df=pd.read_csv(file_name)
+df["date_col"]=df["datetime"]
+index_data=df[df["date_col"].apply(lambda x:datetime.strptime(x.split(" ")[0][0:11],"%Y-%m-%d"))>=pd.Timestamp('2022-06-01')].reset_index(drop=True)
+print(index_data)
 # Get the folder names
 
 def get_folder_names(directory):
@@ -234,9 +236,9 @@ for time in time_values:
                         
     output_df=pd.DataFrame(output_data,columns=columns)
     output_df_100=pd.DataFrame(output_data_100,columns=columns)
-    folder_path="outputFiles"
-    csv_file_name=f'30Aug22_To_30Aug23_{time}.csv'
-    csv_file_name_100=f'30Aug22_To_30Aug23_{time}_100.csv'
+    folder_path="outputFiles/juneToAug22"
+    csv_file_name=f'01Jun22_To_30Aug22_{time}.csv'
+    csv_file_name_100=f'01Jun22_To_30Aug22_{time}_100.csv'
     csv_file_name=csv_file_name.replace(':','')
     csv_file_name_100=csv_file_name_100.replace(':','')
     output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)

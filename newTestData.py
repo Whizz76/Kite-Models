@@ -5,9 +5,15 @@ import calendar
 
 # Reading the index data of 1 year
 
-file_name="Bnf_index_data_(30Aug'22To30Aug'23).csv"
-index_data=pd.read_csv(file_name)
+file_name="Bnf_index_data_(16Aug'21To30Aug'22).csv"
+df=pd.read_csv(file_name)
+df["date_col"]=df["datetime"]
+index_data=df[df["date_col"].apply(lambda x:datetime.strptime(x.split(" ")[0][0:11],"%Y-%m-%d"))>=pd.Timestamp('2022-06-01')].reset_index(drop=True)
+print(index_data)
+# df['datetime_column'] = pd.to_datetime(df['datetime'], format='%d-%m-%Y %H:%M:%S')
 
+# Filter rows based on the datetime condition
+# index_data = df[df['datetime_column'] > pd.Timestamp('2022-06-01')]
 # Get the folder names
 
 def get_folder_names(directory):
@@ -47,7 +53,7 @@ def is_file_present(folder_path, file_name):
 
 
 # Define the range for time
-start_time = datetime.strptime('09:34', '%H:%M')
+start_time = datetime.strptime('09:15', '%H:%M')
 end_time = datetime.strptime('12:00', '%H:%M')
 time_step = timedelta(minutes=1)  # Assuming 1-minute intervals
 
@@ -83,6 +89,9 @@ for time in time_values:
 
             opening_time=index_data.loc[it,"datetime"]
             time_value=opening_time.split(" ")[1][0:5].strip()
+            date_value=opening_time.split(" ")[0][0:11].strip()
+            # if(datetime.strptime(date_value,"%Y-%m-%d")<=pd.Timestamp('2022-06-01')):
+            #     continue
             date='-'.join(reversed(opening_time.split(" ")[0][0:10].split('-')))
 
             if(datetime.strptime(time,"%H:%M")!=datetime.strptime(time_value,"%H:%M")):
@@ -93,11 +102,10 @@ for time in time_values:
             actual_strike_price=strike_price
             strike_price=(int)((strike_price//100)*100)
             strike_price_500=strike_price+500
-
             # Getting the expiry date
 
             expiry_date=get_expiry_date(date)
-
+            # print(date,strike_price,expiry_date)
             if(len(expiry_date)==0):
                 print("Data Absent")
             else:
@@ -149,7 +157,7 @@ for time in time_values:
                         open_c=call_data[call_data["datetime"].str.contains(reversed_day+" "+time)]
                         open_p=put_data[put_data["datetime"].str.contains(reversed_day+" "+time)]
 
-
+                        # print(reversed_day+" "+time)
                         if(len(open_c)==0 or len(open_p)==0):
                             continue
                         open_c=open_c.iloc[0]
@@ -234,9 +242,9 @@ for time in time_values:
                         
     output_df=pd.DataFrame(output_data,columns=columns)
     output_df_100=pd.DataFrame(output_data_100,columns=columns)
-    folder_path="outputFiles"
-    csv_file_name=f'30Aug22_To_30Aug23_{time}.csv'
-    csv_file_name_100=f'30Aug22_To_30Aug23_{time}_100.csv'
+    folder_path="outputFiles/juneToAug22"
+    csv_file_name=f'01Jun22_To_30Aug22_{time}.csv'
+    csv_file_name_100=f'01Jun22_To_30Aug22_{time}_100.csv'
     csv_file_name=csv_file_name.replace(':','')
     csv_file_name_100=csv_file_name_100.replace(':','')
     output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)
