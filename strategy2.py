@@ -216,7 +216,7 @@ for time in time_values:
                                 call_profit_val=[profit_val,call_time]
                                 call_profit_data[profit_num]=call_profit_val
 
-                        if(datetime.strptime(call_time,"%H:%M")>datetime.strptime("14:30","%H:%M")):
+                        if(datetime.strptime(call_time,"%H:%M")>datetime.strptime("15:15","%H:%M")):
                             print("call time",call_time)
                             break
 
@@ -239,7 +239,7 @@ for time in time_values:
                                 put_profit_val=[profit_val,put_time]
                                 put_profit_data[profit_num]=put_profit_val
 
-                        if(datetime.strptime(put_time,"%H:%M")>datetime.strptime("14:30","%H:%M")):
+                        if(datetime.strptime(put_time,"%H:%M")>datetime.strptime("15:15","%H:%M")):
                             print("put time",put_time)
                             break
 
