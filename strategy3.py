@@ -73,10 +73,12 @@ while current_time <= end_time:
 stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step))
 
 for time in time_values:
+    
     output_data=[]
     output_data_100=[]
     output_df=None
     output_df_100=None
+
     for stoploss_val in stoploss_values:
 
         stoploss=stoploss_val*0.01
@@ -221,6 +223,7 @@ for time in time_values:
                         # Getting the net loss/gain
 
                         net=(call_stop-call_start)+(put_stop-put_start)
+
                         net_loss=None
                         net_gain=None
 
@@ -248,7 +251,7 @@ for time in time_values:
     output_df=pd.DataFrame(output_data,columns=columns)
     output_df_100=pd.DataFrame(output_data_100,columns=columns)
 
-    folder_path="strategyOutputs/strategy2"
+    folder_path="strategyOutputs/strategy3"
 
     csv_file_name=f'Jun22_To_Jun23_{time}.csv'
     csv_file_name_100=f'Jun22_To_Jun23_{time}_100.csv'

@@ -228,6 +228,7 @@ for it in range(len(index_data)):
             if(out_data_val in output_data):
                 continue
             print(net,time,stoploss)
+
             if(itr==1):
                 output_data_100.append(out_data_val)
             else:
@@ -237,12 +238,15 @@ for it in range(len(index_data)):
 
 columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
                                             "put_stop","put_stop_time","net","net_gain","net_loss","call_profit_percent","put_profit_percent"]
-                        
+
+
 output_df=pd.DataFrame(output_data,columns=columns)
 output_df_100=pd.DataFrame(output_data_100,columns=columns)
+
 folder_path="strategyOutputs/strategy1"
 csv_file_name="strategy1.csv"
 csv_file_name_100="strategy1_100.csv"
+
 output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)
 output_df_100.to_csv(os.path.join(folder_path,csv_file_name_100),index=False)
 
