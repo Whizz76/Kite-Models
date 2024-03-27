@@ -44,7 +44,10 @@ def is_file_present(folder_path, file_name):
     return os.path.exists(file_path)
 
 check_if_done={}
+
 stoploss=0.3
+profit=0.2
+
 output_data=[]
 output_data_100=[]
 output_df=None
@@ -103,6 +106,7 @@ for it in range(len(index_data)):
             break
     
     for itr in range(0,2):
+        # Iterate two times, one with strike price, other with strike price+100 
         if (itr==1):
             strike_price=strike_price_500
 
@@ -135,10 +139,12 @@ for it in range(len(index_data)):
             call_start=open_c["close"]
             put_start=open_p["close"]
 
-            # Setting the closing prices for both call and put
+            # Setting the stopping prices for both call and put
 
-            call_stop=call_start*(1+stoploss)
-            put_stop=put_start*(1+stoploss)
+            call_stop=call_start*(1-stoploss)
+            put_stop=put_start*(1-stoploss)
+            call_profit=None
+            put_profit=None
 
             open_c=call_data[call_data["datetime"].str.contains(reversed_day)]
             open_p=put_data[put_data["datetime"].str.contains(reversed_day)]
@@ -159,10 +165,21 @@ for it in range(len(index_data)):
 
             for i in range(len(call_data_1)):
                 call_time=call_data_1.loc[i,"datetime"].split(" ")[1][0:5].strip()
-                if(call_data_1.loc[i,"close"]>=call_stop):
-                    call_stop=call_data_1.loc[i,"close"]
+
+                # Getting the call price
+                call_p=call_data_1.loc[i,"close"]
+                
+                if(call_p>=call_start*(1+profit) and call_p<=call_start*(1.01+profit)):
+                    call_stop=call_p
+                    call_profit=((call_p-call_start)/call_start)*100
                     call_stop_time=call_data_1.loc[i,"datetime"]
                     break
+
+                elif (call_p<=call_stop):
+                    call_stop=call_p
+                    call_stop_time=call_data_1.loc[i,"datetime"]
+                    break
+
                 elif(call_time=="15:15"):
                     call_stop=call_data_1.loc[i,"close"]
                     call_stop_time=call_data_1.loc[i,"datetime"]
@@ -172,10 +189,20 @@ for it in range(len(index_data)):
 
             for i in range(len(put_data_1)):
                 put_time=put_data_1.loc[i,"datetime"].split(" ")[1][0:5].strip()
-                if(put_data_1.loc[i,"close"]>put_stop):
-                    put_stop=put_data_1.loc[i,"close"]
+                # Getting the put price
+                put_p=put_data_1.loc[i,"close"]
+
+                if(put_p>=(put_start*(1+profit)) and put_p<=(put_start*(1.01+profit))):
+                    put_stop=put_p
+                    put_profit=((put_p-put_start)/put_start)*100
                     put_stop_time=put_data_1.loc[i,"datetime"]
                     break
+
+                elif(put_p<=put_stop):
+                    put_stop=put_p
+                    put_stop_time=put_data_1.loc[i,"datetime"]
+                    break
+
                 elif(put_time=="15:15"):
                     put_stop=put_data_1.loc[i,"close"]
                     put_stop_time=put_data_1.loc[i,"datetime"]
@@ -190,26 +217,6 @@ for it in range(len(index_data)):
             net=(call_start-call_stop)+(put_start-put_stop)
             net_loss=None
             net_gain=None
-            net_profit_call_20=None
-            net_profit_put_20=None
-            percent_gain_call=None
-            percent_gain_put=None
-
-            if(call_start>=(1.25*call_stop) and call_start<=(1.33*call_stop)):
-                net_profit_call_20=(call_start-call_stop)/call_start
-                net_profit_call_20*=100
-            
-            if(put_start>=(1.25*put_stop) and put_start<=(1.33*put_stop)):
-                net_profit_put_20=(put_start-put_stop)/put_start
-                net_profit_put_20*=100
-
-            if(call_start>=call_stop):
-                percent_gain_call=(call_start-call_stop)/call_start
-                percent_gain_call*=100
-
-            if(put_start>=put_stop):
-                percent_gain_put=(put_start-put_stop)/put_start
-                percent_gain_put*=100
 
             if(net<0):
                 net_loss=net
@@ -217,8 +224,7 @@ for it in range(len(index_data)):
                 net_gain=net
 
             out_data_val=[date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
-                                put_start,put_stop,put_stop_time,net,net_gain,net_loss,net_profit_call_20,
-                                net_profit_put_20,percent_gain_call,percent_gain_put]
+                                put_start,put_stop,put_stop_time,net,net_gain,net_loss,call_profit,put_profit]
             if(out_data_val in output_data):
                 continue
             print(net,time,stoploss)
@@ -230,8 +236,7 @@ for it in range(len(index_data)):
 
 
 columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
-                                            "put_stop","put_stop_time","net","net_gain","net_loss","net_profit_call_20",
-                                "net_profit_put_20","percent_gain_call","percent_gain_put"]
+                                            "put_stop","put_stop_time","net","net_gain","net_loss","call_profit","put_profit"]
                         
 output_df=pd.DataFrame(output_data,columns=columns)
 output_df_100=pd.DataFrame(output_data_100,columns=columns)
