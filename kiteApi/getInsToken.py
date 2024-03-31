@@ -26,6 +26,7 @@ instruments=pd.json_normalize(instruments)
 print(instruments)
 # Store it in a .csv file
 
+# Get the ltp price for a given token
 # LTP=kite.ltp("NSE:NIFTY BANK")
 # print(LTP)
 # instruments.to_csv("instruments2.csv")
