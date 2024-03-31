@@ -44,3 +44,4 @@ def place_order_kite(tradingsymbol,price,quantity,direction,order_type,product,v
 
 # get_order_id = place_order_kite("NIFTY BANK",0,1,"buy","MARKET","NRML","REGULAR","NSE","DAY")
 # print(get_order_id)
+# RAJMET-BE
