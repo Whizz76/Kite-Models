@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import json
 import requests
+import csv
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,7 +18,7 @@ kite = KiteConnect(api_key=api_key)
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "mf2F4NPeSIjBd4U4k0RF9mYv1C84oSNX"
+access_token = "FaA7BWJ1xebOrSL6kfkwNtmHa7OFw8lP"
 kite.set_access_token(access_token)
 
 # Get the instrument token for the instrument you want to subscribe to from the instruments list (.csv file)
@@ -38,10 +39,49 @@ print("low",interval_low)
 kws = KiteTicker(api_key,access_token)
 tokens =[260105,256265]
 bank_nifty_token=260105
+column_names = ["instrument_token","last_price","open","high","low","close","change","timestamp"]
+
+def update_csv_with_json(csv_file, json_data):
+    """
+    Updates the specified CSV file with the provided JSON data.
+
+    Args:
+        csv_file (str): Path to the CSV file.
+        json_data (dict or list): The JSON data to be written to the CSV.
+    """
+
+    with open(csv_file, 'a', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        if csvfile.tell() == 0:  # Check if file is empty
+            csv_writer.writerow(column_names)
+        # Check if the CSV file already has a header row
+        try:
+            csv_reader = csv.reader(open(csv_file, 'r'))
+            next(csv_reader)  # Read and discard the header if it exists
+        except StopIteration:
+            # Write the header row if the CSV file is empty
+            if isinstance(json_data, list) and len(json_data) > 0:
+                header_row = json_data[0].keys()
+                csv_writer.writerow(header_row)
+
+        # Extract data from the JSON based on its structure (list or dict)
+        if isinstance(json_data, list):
+            for item in json_data:
+                row_data = item.values()
+                csv_writer.writerow(row_data)
+        elif isinstance(json_data, dict):
+            row_data = json_data.values()
+            csv_writer.writerow(row_data)
+        else:
+            raise ValueError("Invalid JSON data format. Expected list or dict.")
+
+
 def on_ticks(ws, ticks):
   logging.debug("Ticks: {}".format(ticks))
-  print(ticks)
-
+  for tick in ticks:
+    data={"instrument_token":tick["instrument_token"],"last_price":tick["last_price"],"open":tick["ohlc"]["open"],"high":tick["ohlc"]["high"],"low":tick["ohlc"]["low"],"close":tick["ohlc"]["close"],"change":tick["change"],"exchange_timestamp":tick["exchange_timestamp"]}
+    update_csv_with_json("liveData.csv", data)
+  # logging.debug("Ticks: {}".format(ticks))
 
 def on_connect(ws, response):
   # Subscribe to a list of instrument_tokens

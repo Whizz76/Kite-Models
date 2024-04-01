@@ -17,7 +17,7 @@ kite = KiteConnect(api_key=api_key)
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "mf2F4NPeSIjBd4U4k0RF9mYv1C84oSNX"
+access_token = "FaA7BWJ1xebOrSL6kfkwNtmHa7OFw8lP"
 kite.set_access_token(access_token)
 
 def place_order_kite(tradingsymbol,price,quantity,direction,order_type,product,variety,exchange,validity):
