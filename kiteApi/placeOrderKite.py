@@ -90,5 +90,14 @@ def place_SLM_order(trigger_price,buy_sell):
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
 
+symbol="ITC24APRFUT"
+temp="NFO: "+symbol
+itc_ltp = kite.quote(temp)[temp]['last_price']
+SP=int(round(itc_ltp,-2))
+SP_1500=SP+1500
+
+tradingSym=symbol+str(SP_1500)+"CE"
+
+
 # Fetch all orders
 print(kite.orders())

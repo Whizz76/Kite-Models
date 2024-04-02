@@ -237,6 +237,10 @@ for time in time_values:
                         print(net,time,stoploss)
                         data_output=[date,expiry_date,time,stoploss,strike_price,actual_strike_price,call_start,call_stop,call_stop_time,
                                             put_start,put_stop,put_stop_time,net,net_gain,net_loss]
+                        
+                        if(data_output in output_data):
+                            continue
+
                         if(itr==1):
                             output_data_100.append(data_output)
                         else:
