@@ -5,11 +5,15 @@ import calendar
 
 # Reading the index data of 1 year
 
-file_name="Bnf_index_data_(16Aug'21To30Aug'22).csv"
-df=pd.read_csv(file_name)
-df["date_col"]=df["datetime"]
-index_data=df[df["date_col"].apply(lambda x:datetime.strptime(x.split(" ")[0][0:11],"%Y-%m-%d"))>=pd.Timestamp('2022-06-01')].reset_index(drop=True)
-print(index_data)
+# file_name="Bnf_index_data_(16Aug'21To30Aug'22).csv"
+# df=pd.read_csv(file_name)
+# df["date_col"]=df["datetime"]
+# index_data=df[df["date_col"].apply(lambda x:datetime.strptime(x.split(" ")[0][0:11],"%Y-%m-%d"))>=pd.Timestamp('2022-06-01')].reset_index(drop=True)
+# print(index_data)
+
+
+index_data=pd.read_csv("indexData/19_23_Jun_BNF.csv")
+
 # df['datetime_column'] = pd.to_datetime(df['datetime'], format='%d-%m-%Y %H:%M:%S')
 
 # Filter rows based on the datetime condition
@@ -54,13 +58,13 @@ def is_file_present(folder_path, file_name):
 
 # Define the range for time
 start_time = datetime.strptime('09:15', '%H:%M')
-end_time = datetime.strptime('12:00', '%H:%M')
-time_step = timedelta(minutes=1)  # Assuming 1-minute intervals
+end_time = datetime.strptime('14:00', '%H:%M')
+time_step = timedelta(minutes=5)  # Assuming n-minute intervals
 
 # Define the range for stoploss (percentage)
-min_percentage = 5
-max_percentage = 50
-percentage_step = 1  # Assuming 1% intervals
+min_percentage = 20
+max_percentage = 100
+percentage_step = 5  # Assuming n% intervals
 
 time_values=[]
 stoploss_values=[]
@@ -237,14 +241,15 @@ for time in time_values:
                             output_data_100.append(data_output)
                         else:
                             output_data.append(data_output)
+
     columns=["date","expiry_date","time","stoploss","strike_price","actual_strike_price","call_start","call_stop","call_stop_time","put_start",
                                             "put_stop","put_stop_time","net","net_gain","net_loss"]
                         
     output_df=pd.DataFrame(output_data,columns=columns)
     output_df_100=pd.DataFrame(output_data_100,columns=columns)
-    folder_path="outputFiles/juneToAug22"
-    csv_file_name=f'01Jun22_To_30Aug22_{time}.csv'
-    csv_file_name_100=f'01Jun22_To_30Aug22_{time}_100.csv'
+    folder_path="outputFiles/june1923/BNF"
+    csv_file_name=f'1923_{time}.csv'
+    csv_file_name_100=f'1923_{time}_100.csv'
     csv_file_name=csv_file_name.replace(':','')
     csv_file_name_100=csv_file_name_100.replace(':','')
     output_df.to_csv(os.path.join(folder_path,csv_file_name),index=False)

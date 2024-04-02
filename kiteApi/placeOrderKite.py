@@ -48,6 +48,19 @@ kite.set_access_token(access_token)
 # # RAJMET-BE
 
 # Place an order
+def place_order():
+    try:
+        order_id = kite.place_order(tradingsymbol="INFY",
+                                    exchange=kite.EXCHANGE_NSE,
+                                    transaction_type=kite.TRANSACTION_TYPE_BUY,
+                                    quantity=1,
+                                    variety=kite.VARIETY_REGULAR,
+                                    order_type=kite.ORDER_TYPE_MARKET,
+                                    product=kite.PRODUCT_CNC)
+
+        logging.info("Order placed. ID is: {}".format(order_id))
+    except Exception as e:
+        logging.info("Order placement failed: {}".format(e))
 # try:
 #     order_id = kite.place_order(tradingsymbol="INFY",
 #                                 exchange=kite.EXCHANGE_BSE,
@@ -60,6 +73,22 @@ kite.set_access_token(access_token)
 #     logging.info("Order placed. ID is: {}".format(order_id))
 # except Exception as e:
 #     logging.info("Order placement failed: {}".format(e))
+        
+def place_SLM_order(trigger_price,buy_sell):
+    try:
+        order_id = kite.place_order(tradingsymbol="INFY",
+                                    exchange=kite.EXCHANGE_NSE,
+                                    transaction_type=kite.TRANSACTION_TYPE_BUY if buy_sell == "buy" else kite.TRANSACTION_TYPE_SELL,
+                                    quantity=1,
+                                    variety=kite.VARIETY_REGULAR,
+                                    order_type=kite.ORDER_TYPE_SLM,
+                                    product=kite.PRODUCT_CNC,
+                                    trigger_price=trigger_price,
+                                    price=0.0)
+
+        logging.info("Order placed. ID is: {}".format(order_id))
+    except Exception as e:
+        logging.info("Order placement failed: {}".format(e))
 
 # Fetch all orders
 print(kite.orders())
