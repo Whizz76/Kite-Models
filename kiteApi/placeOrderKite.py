@@ -74,8 +74,8 @@ PE_price=SP-1500
 tradingSym_PE=symbol+str(PE_price)+"PE"
 tradingSym_CE=symbol+str(CE_price)+"CE"
 
-if(PE_order): place_order(tradingSym_PE,"buy",PE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-if(CE_order): place_order(tradingSym_CE,"buy",CE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+if(PE_order): PE_1500=place_order(tradingSym_PE,"buy",PE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+if(CE_order): CE_1500=place_order(tradingSym_CE,"buy",CE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
 
 # Fetch all orders
