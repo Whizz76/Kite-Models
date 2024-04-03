@@ -20,59 +20,23 @@ kite = KiteConnect(api_key=api_key)
 access_token = "FaA7BWJ1xebOrSL6kfkwNtmHa7OFw8lP"
 kite.set_access_token(access_token)
 
-# def place_order_kite(tradingsymbol,price,quantity,direction,order_type,product,variety,exchange,validity):
-#     """
-#     This function will place an order on the exchange
-#     """
-#     print("Placing order {} Qty: {} Direction: {}".format(tradingsymbol,quantity,direction))
-#     try:
-#         order_id = kite.place_order(tradingsymbol=tradingsymbol,
-#                                     quantity=quantity,
-#                                     transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
-#                                     order_type=order_type,
-#                                     product=product,
-#                                     variety=variety,
-#                                     price=price,
-#                                     validity=validity,
-#                                     exchange=exchange)
-        
-#         logging.info("Order placed. ID is: {}".format(order_id))
-#         print("Order placement successful. Direction is {} OrderId is: {}".format(direction,order_id))
-#         return order_id
-#     except Exception as e:
-#         logging.info("Order placement failed: {}".format(e.message))
-
-# get_order_id = place_order_kite("RAJMET-BE",0,1,"buy","MARKET","NRML","REGULAR","BSE","DAY")
-# print(get_order_id)
-# print(kite.orders())
 # # RAJMET-BE
 
 # Place an order
-def place_order():
+def place_order(symbol,direction,price,exchange,o_type,product):
     try:
-        order_id = kite.place_order(tradingsymbol="INFY",
-                                    exchange=kite.EXCHANGE_NSE,
-                                    transaction_type=kite.TRANSACTION_TYPE_BUY,
+        order_id = kite.place_order(tradingsymbol=symbol,
+                                    exchange=exchange,
+                                    transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
                                     quantity=1,
+                                    price=price,
                                     variety=kite.VARIETY_REGULAR,
-                                    order_type=kite.ORDER_TYPE_MARKET,
-                                    product=kite.PRODUCT_CNC)
+                                    order_type=o_type,
+                                    product=product)
 
         logging.info("Order placed. ID is: {}".format(order_id))
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
-# try:
-#     order_id = kite.place_order(tradingsymbol="INFY",
-#                                 exchange=kite.EXCHANGE_BSE,
-#                                 transaction_type=kite.TRANSACTION_TYPE_BUY,
-#                                 quantity=1,
-#                                 variety=kite.VARIETY_REGULAR,
-#                                 order_type=kite.ORDER_TYPE_MARKET,
-#                                 product=kite.PRODUCT_CNC)
-
-#     logging.info("Order placed. ID is: {}".format(order_id))
-# except Exception as e:
-#     logging.info("Order placement failed: {}".format(e))
         
 def place_SLM_order(trigger_price,buy_sell):
     try:
@@ -87,16 +51,31 @@ def place_SLM_order(trigger_price,buy_sell):
                                     price=0.0)
 
         logging.info("Order placed. ID is: {}".format(order_id))
+        return order_id
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
+        return None
 
-symbol="ITC24APRFUT"
+symbol="BANKNIFTY24APRFUT"
 temp="NFO: "+symbol
 itc_ltp = kite.quote(temp)[temp]['last_price']
 SP=int(round(itc_ltp,-2))
-SP_1500=SP+1500
+CE_price=SP
+PE_price=SP
+tradingSym_PE=symbol+str(PE_price)+"PE"
+tradingSym_CE=symbol+str(CE_price)+"CE"
 
-tradingSym=symbol+str(SP_1500)+"CE"
+PE_order=place_order(tradingSym_PE,"sell",PE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+CE_order=place_order(tradingSym_CE,"sell",CE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+
+CE_price=SP+1500
+PE_price=SP-1500
+
+tradingSym_PE=symbol+str(PE_price)+"PE"
+tradingSym_CE=symbol+str(CE_price)+"CE"
+
+if(PE_order): place_order(tradingSym_PE,"buy",PE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+if(CE_order): place_order(tradingSym_CE,"buy",CE_price,kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
 
 # Fetch all orders
