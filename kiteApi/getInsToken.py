@@ -27,22 +27,34 @@ kite.set_access_token(access_token)
 # # Store it in a .csv file
 
 # # Get the ltp price for a given token
-symbol="BANKNIFTY24APRFUT"
-temp="NFO:"+symbol
+symbol="NIFTY BANK"
+temp="NSE:"+symbol
 token_ltp=kite.quote(temp)[temp]['last_price']
 print(token_ltp)
 SP=int(round(token_ltp,-2))
+
 CE_price=SP
 PE_price=SP
-symbol="BANKNIFTY2444"
+symbol="BANKNIFTY24410"
+
+# print(kite.quote("NFO:BANKNIFTY24APR46100PE")["NFO:BANKNIFTY24APR46100PE"]['last_price'])
+
 tradingSym_PE=symbol+str(PE_price)+"PE"
 tradingSym_CE=symbol+str(CE_price)+"CE"
-print(tradingSym_PE)
-print(tradingSym_CE)
-tradingSym_CE=symbol+str(PE_price)+"PE"
-token_ltp=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
-print(token_ltp)
-tradingSym_CE=symbol+str(CE_price)+"CE"
-token_ltp=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
-print(token_ltp)
+cur_PE_price=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
+cur_CE_price=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
+
+print(cur_PE_price)
+print(cur_CE_price)
+# print(kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price'])
+# print(kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price'])
+
+# print(tradingSym_PE)
+# print(tradingSym_CE)
+# tradingSym_CE=symbol+str(PE_price)+"PE"
+# token_ltp=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
+# print(token_ltp)
+# tradingSym_CE=symbol+str(CE_price)+"CE"
+# token_ltp=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
+# print(token_ltp)
 # instruments.to_csv("instruments2.csv")
