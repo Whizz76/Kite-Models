@@ -58,8 +58,8 @@ def place_SLM_order(trigger_price,buy_sell):
 
 symbol="BANKNIFTY24APRFUT"
 temp="NFO: "+symbol
-itc_ltp = kite.quote(temp)[temp]['last_price']
-SP=int(round(itc_ltp,-2))
+token_ltp = kite.quote(temp)[temp]['last_price']
+SP=int(round(token_ltp,-2))
 CE_price=SP
 PE_price=SP
 tradingSym_PE=symbol+str(PE_price)+"PE"
