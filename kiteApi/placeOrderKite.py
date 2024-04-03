@@ -56,11 +56,13 @@ def place_SLM_order(trigger_price,buy_sell):
         logging.info("Order placement failed: {}".format(e))
         return None
 
-symbol="NIFTY BANK"
-temp="NSE:"+symbol
+symbol="NIFTY24APRFUT"
+temp="NFO:"+symbol
 token_ltp = kite.quote(temp)[temp]['last_price']
 print(token_ltp)
 SP=int(round(token_ltp,-2))
+stoploss=0.2
+
 CE_price=SP
 PE_price=SP
 symbol="BANKNIFTY3APR"
