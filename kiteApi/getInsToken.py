@@ -13,20 +13,36 @@ api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
 # get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
-# data = kite.generate_session("OEAmdfk1aLKs3Yor3lyxc8b5Sh8qRGzB",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
+# data = kite.generate_session("oKIMVvoDp1plynd0kMZwu771Y1J4KbEs",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "FaA7BWJ1xebOrSL6kfkwNtmHa7OFw8lP"
+access_token = "R2TVZ656Lwc0M3Fo9Xo9KQ3g917Klxsy"
 kite.set_access_token(access_token)
 
 
-# instruments = kite.instruments(exchange="NSE")
-# instruments=pd.json_normalize(instruments)
-# print(instruments)
-# Store it in a .csv file
+# # instruments = kite.instruments(exchange="NSE")
+# # instruments=pd.json_normalize(instruments)
+# # print(instruments)
+# # Store it in a .csv file
 
-# Get the ltp price for a given token
-LTP=kite.ltp("NSE:NIFTY BANK")
-print(LTP)
+# # Get the ltp price for a given token
+symbol="BANKNIFTY24APRFUT"
+temp="NFO:"+symbol
+token_ltp=kite.quote(temp)[temp]['last_price']
+print(token_ltp)
+SP=int(round(token_ltp,-2))
+CE_price=SP
+PE_price=SP
+symbol="BANKNIFTY2444"
+tradingSym_PE=symbol+str(PE_price)+"PE"
+tradingSym_CE=symbol+str(CE_price)+"CE"
+print(tradingSym_PE)
+print(tradingSym_CE)
+tradingSym_CE=symbol+str(PE_price)+"PE"
+token_ltp=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
+print(token_ltp)
+tradingSym_CE=symbol+str(CE_price)+"CE"
+token_ltp=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
+print(token_ltp)
 # instruments.to_csv("instruments2.csv")
