@@ -1,3 +1,4 @@
+# Ignore this file. It is just a test file.
 from datetime import datetime
 def is_current_time_1515():
     # Get the current time
@@ -11,4 +12,12 @@ def is_current_time_1515():
     else:
         return False
     
+def fun(el):
+    if(el):
+        return {"a":1}
+    else: return None   
+
+o=None
+o=fun(False)
+if(o!=None): print(o)
 print(is_current_time_1515())
