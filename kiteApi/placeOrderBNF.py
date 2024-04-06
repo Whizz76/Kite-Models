@@ -21,6 +21,9 @@ kite = KiteConnect(api_key=api_key)
 access_token = "R2TVZ656Lwc0M3Fo9Xo9KQ3g917Klxsy"
 kite.set_access_token(access_token)
 
+net = kite.margins()["equity"]["net"]
+print(net)
+
 symbol="NIFTY BANK"
 temp="NSE:"+symbol
 stoploss=0.2
