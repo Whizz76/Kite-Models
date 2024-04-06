@@ -85,19 +85,12 @@ PE_price=SP
 
 symbol="BANKNIFTY24410"
 
+
 tradingSym_PE=symbol+str(PE_price)+"PE"
 tradingSym_CE=symbol+str(CE_price)+"CE"
 
 print(tradingSym_PE)
 print(tradingSym_CE)
-
-PE_order=place_order(tradingSym_PE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-time.sleep(1)
-PE_LTP=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
-
-CE_order=place_order(tradingSym_CE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-time.sleep(1)
-CE_LTP=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
 
 CE_price=SP+1500
 PE_price=SP-1500
@@ -105,8 +98,17 @@ PE_price=SP-1500
 tradingSym_PE_1500=symbol+str(PE_price)+"PE"
 tradingSym_CE_1500=symbol+str(CE_price)+"CE"
 
-if(PE_order): PE_1500=place_order(tradingSym_PE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-if(CE_order): CE_1500=place_order(tradingSym_CE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+PE_1500=place_order(tradingSym_PE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+CE_1500=place_order(tradingSym_CE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+
+
+if(PE_1500): PE_order=place_order(tradingSym_PE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+time.sleep(1)
+PE_LTP=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
+
+if(CE_1500): CE_order=place_order(tradingSym_CE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+time.sleep(1)
+CE_LTP=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
 
 PE_stoploss_orderid=None
 CE_stoploss_orderid=None
@@ -121,15 +123,15 @@ while True:
 
     elif is_current_time_1515():
 
-        if(PE_stoploss_orderid!=None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        if(CE_stoploss_orderid!=None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        if(PE_stoploss_orderid==None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        if(CE_stoploss_orderid==None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
         break
 
     else:
-        if (PE_stoploss_orderid!=None and cur_PE_price>=(PE_LTP*1.2)):
+        if (PE_stoploss_orderid==None and cur_PE_price>=(PE_LTP*1.2)):
             PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
-        if (CE_stoploss_orderid!=None and cur_CE_price>=(CE_LTP*1.2)):
+        if (CE_stoploss_orderid==None and cur_CE_price>=(CE_LTP*1.2)):
             CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
             
     time.sleep(1)
