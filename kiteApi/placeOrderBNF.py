@@ -18,7 +18,7 @@ kite = KiteConnect(api_key=api_key)
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "R2TVZ656Lwc0M3Fo9Xo9KQ3g917Klxsy"
+access_token = "9u1L639cc4SYvh7bG8gpAaUc63V7iRCF"
 kite.set_access_token(access_token)
 
 net = kite.margins()["equity"]["net"]
@@ -149,5 +149,9 @@ def place_order_time(time_hour,time_minute):
 
         # Fetch all orders
         print(kite.orders())
+        
+def main():
+    place_order_time(9,35)
 
-place_order_time(9,35)
+if __name__=="__main__":
+    main()
