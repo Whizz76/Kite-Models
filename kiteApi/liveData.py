@@ -5,6 +5,7 @@ from kiteconnect import KiteTicker
 import pandas as pd
 from datetime import datetime, timedelta
 import json
+import time as time
 import requests
 import csv
 
@@ -18,7 +19,7 @@ kite = KiteConnect(api_key=api_key)
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "FaA7BWJ1xebOrSL6kfkwNtmHa7OFw8lP"
+access_token = "hwCRIuz9lMxvOEzgo8V8MfzVUlurGxc3"
 kite.set_access_token(access_token)
 
 # Get the instrument token for the instrument you want to subscribe to from the instruments list (.csv file)
@@ -80,9 +81,9 @@ def on_ticks(ws, ticks):
   logging.debug("Ticks: {}".format(ticks))
   for tick in ticks:
     data={"instrument_token":tick["instrument_token"],"last_price":tick["last_price"],"open":tick["ohlc"]["open"],"high":tick["ohlc"]["high"],"low":tick["ohlc"]["low"],"close":tick["ohlc"]["close"],"change":tick["change"],"exchange_timestamp":tick["exchange_timestamp"]}
-    update_csv_with_json("liveData.csv", data)
+    update_csv_with_json("liveData1.csv", data)
   # logging.debug("Ticks: {}".format(ticks))
-
+  time.sleep(60)
 def on_connect(ws, response):
   # Subscribe to a list of instrument_tokens
   ws.subscribe([260105])

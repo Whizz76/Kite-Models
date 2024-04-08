@@ -24,7 +24,7 @@ kite.set_access_token(access_token)
 net = kite.margins()["equity"]["net"]
 print(net)
 
-symbol="NIFTY BANK"
+symbol="NIFTY FIN SERVICE"
 temp="NSE:"+symbol
 stoploss=0.2
 
@@ -44,7 +44,8 @@ if current_date.month<10:
 # Form the string in the format yymdd
 else: result_string = year_last_two_digits + month_index.zfill(2) + day.zfill(2)
 
-sym="BANKNIFTY"
+sym="FINNIFTY"
+trade_size=120
 
 symbol=sym+result_string
 print("symbol",symbol)
@@ -64,7 +65,7 @@ def place_order(symbol,direction,exchange,o_type,product):
         order_id = kite.place_order(tradingsymbol=symbol,
                                     exchange=exchange,
                                     transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
-                                    quantity=1,
+                                    quantity=trade_size,
                                     variety=kite.VARIETY_REGULAR,
                                     order_type=o_type,
                                     product=product)
@@ -101,23 +102,26 @@ def place_order_time(time_hour,time_minute):
         print(tradingSym_PE)
         print(tradingSym_CE)
 
-        CE_price=SP+1500
-        PE_price=SP-1500
+        CE_price=SP+600
+        PE_price=SP-600
 
-        tradingSym_PE_1500=symbol+str(PE_price)+"PE"
-        tradingSym_CE_1500=symbol+str(CE_price)+"CE"
+        tradingSym_PE_600=symbol+str(PE_price)+"PE"
+        tradingSym_CE_600=symbol+str(CE_price)+"CE"
 
-        PE_1500=place_order(tradingSym_PE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        CE_1500=place_order(tradingSym_CE_1500,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        PE_600=place_order(tradingSym_PE_600,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        CE_600=place_order(tradingSym_CE_600,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
+        PE_LTP=None
+        CE_LTP=None
 
-        if(PE_1500): PE_order=place_order(tradingSym_PE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        time.sleep(1)
-        PE_LTP=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
+        if(PE_600 and CE_600): 
+            PE_order=place_order(tradingSym_PE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+            time.sleep(1)
+            if(PE_order): PE_LTP=kite.quote("NFO:"+tradingSym_PE)["NFO:"+tradingSym_PE]['last_price']
 
-        if(CE_1500): CE_order=place_order(tradingSym_CE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        time.sleep(1)
-        CE_LTP=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
+            CE_order=place_order(tradingSym_CE,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+            time.sleep(1)
+            if(CE_order): CE_LTP=kite.quote("NFO:"+tradingSym_CE)["NFO:"+tradingSym_CE]['last_price']
 
         PE_stoploss_orderid=None
         CE_stoploss_orderid=None
@@ -138,10 +142,10 @@ def place_order_time(time_hour,time_minute):
 
             else:
                 limit=1+stoploss
-                if (PE_stoploss_orderid==None and cur_PE_price>=(PE_LTP*limit)):
+                if (PE_stoploss_orderid==None and PE_LTP!=None and cur_PE_price>=(PE_LTP*limit)):
                     PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
-                if (CE_stoploss_orderid==None and cur_CE_price>=(CE_LTP*limit)):
+                if (CE_stoploss_orderid==None and CE_LTP!=None and cur_CE_price>=(CE_LTP*limit)):
                     CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                     
             time.sleep(1)
