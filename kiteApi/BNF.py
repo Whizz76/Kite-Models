@@ -138,6 +138,10 @@ def place_order_time(time_hour,time_minute):
 
                 if(PE_stoploss_orderid==None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                 if(CE_stoploss_orderid==None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+
+                if(PE_1500): PE_sell_order=place_order(tradingSym_PE_1500,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+                if(CE_1500): CE_sell_order=place_order(tradingSym_CE_1500,"sell",kite.EXCHANGE_NFO,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+                
                 break
 
             else:
