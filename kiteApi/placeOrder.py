@@ -18,11 +18,11 @@ kite = KiteConnect(api_key=api_key)
 # print(data)
 
 # Get the access token from the above response and store it in a variable
-# access_token = "9u1L639cc4SYvh7bG8gpAaUc63V7iRCF"
-# kite.set_access_token(access_token)
+access_token = "9u1L639cc4SYvh7bG8gpAaUc63V7iRCF"
+kite.set_access_token(access_token)
 
-# net = kite.margins()["equity"]["net"]
-# print("net: ",net)
+net = kite.margins()["equity"]["net"]
+print("net: ",net)
 
 
 # Initializing the input parameters
@@ -51,7 +51,7 @@ trade_size=int(input_values["quantity"])
 symbol=str(input_values["instrument_token"]).upper()
 sym=str(input_values["trading_symbol"]).upper()
 
-exchange1=str(input_values["exchange1"]).upper()
+exchange1=str(input_values["exchange"]).upper()
 exchange2="NFO"
 if(exchange1=="BSE"): exchange2="BFO"
 
