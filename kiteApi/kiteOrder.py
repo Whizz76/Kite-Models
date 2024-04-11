@@ -162,7 +162,8 @@ def place_order_time(time_hour,time_minute):
             CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
             time.sleep(1)
             if(CE_order): CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-
+        
+        PE_CE_LTP=min(PE_LTP,CE_LTP)
         PE_stoploss_orderid=None
         CE_stoploss_orderid=None
 
@@ -188,37 +189,25 @@ def place_order_time(time_hour,time_minute):
 
             else:
                 limit=1+stoploss
-                PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_LTP)
-                CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,CE_LTP)
+                
+                PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_CE_LTP)
+                CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,PE_CE_LTP)
 
-                if (PE_stoploss_status and CE_stoploss_status):
-                    print("waiting for 50sec for Put and Call options...")
-                    time.sleep(50)
-
-                    cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                    cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-
-                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_LTP)
-                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,CE_LTP)
-
-                    if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                    if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-
-                elif (PE_stoploss_status):
+                if (PE_stoploss_status):
                     print("waiting for 50sec for Put option...")
                     time.sleep(50)
 
                     cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_LTP)
+                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_CE_LTP)
 
                     if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
-                elif(CE_stoploss_status):
+                if(CE_stoploss_status):
                     print("waiting for 50sec for Call option...")
                     time.sleep(50)
 
                     cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,CE_LTP)
+                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,PE_CE_LTP)
 
                     if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                     
