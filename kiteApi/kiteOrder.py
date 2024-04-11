@@ -15,14 +15,14 @@ kite = KiteConnect(api_key=api_key)
 
 # get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
 # data = kite.generate_session("h3PyhDEbw3N5yO7X9WNclOcPpKa6tSjD",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
-# print(data)
+# logging.info(data)
 
 # Get the access token from the above response and store it in a variable
 access_token = ""
 kite.set_access_token(access_token)
 
 net = kite.margins()["equity"]["net"]
-print("net: ",net)
+logging.info("net: {}".format(net))
 
 
 # Initializing the input parameters
@@ -57,8 +57,8 @@ if(exchange1=="BSE"): exchange2="BFO"
 
 margin_range=int(input_values["margin_range"])
 
-# print(entry_time_hour,entry_time_min,exit_time_hour,exit_time_min)
-# print(stoploss,trade_size,symbol,trading_symbol,margin_range)
+# logging.info(entry_time_hour,entry_time_min,exit_time_hour,exit_time_min)
+# logging.info(stoploss,trade_size,symbol,trading_symbol,margin_range)
 # -----------------------------------------------------------------------
 kite_exchange=kite.EXCHANGE_NFO
 if(exchange2=="BFO"): kite_exchange=kite.EXCHANGE_BFO
@@ -83,7 +83,7 @@ else: result_string = year_last_two_digits + month_index.zfill(2) + day.zfill(2)
 
 
 symbol=sym+result_string
-print("symbol",symbol)
+logging.info("symbol {}".format(symbol))
 
 def is_current_time(hour, minute):
     # Get current time
@@ -95,7 +95,7 @@ def is_current_time(hour, minute):
 
 # Place an order
 def place_order(symbol,direction,exchange,o_type,product):
-    print("placing {} order".format(direction))
+    logging.info("placing {} order".format(direction))
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
@@ -131,7 +131,7 @@ def place_order_time(time_hour,time_minute):
 
         token_ltp = kite.quote(temp)[temp]['last_price']
         SP=int(round(token_ltp,-2))
-        print("SP: ",SP)
+        logging.info("SP: {}".format(SP))
         
         CE_price=SP
         PE_price=SP
@@ -139,8 +139,8 @@ def place_order_time(time_hour,time_minute):
         tradingSym_PE=symbol+str(PE_price)+"PE"
         tradingSym_CE=symbol+str(CE_price)+"CE"
 
-        print(tradingSym_PE)
-        print(tradingSym_CE)
+        logging.info("PE_sym {}".format(tradingSym_PE))
+        logging.info("CE_sym {}".format(tradingSym_CE))
 
         CE_price=SP+margin_range
         PE_price=SP-margin_range
@@ -184,7 +184,7 @@ def place_order_time(time_hour,time_minute):
                 break
 
             elif(PE_stoploss_orderid!=None and CE_stoploss_orderid!=None):
-                print("waiting till the exit time...")
+                logging.info("waiting till the exit time...")
                 continue
 
             else:
@@ -194,7 +194,7 @@ def place_order_time(time_hour,time_minute):
                 CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,PE_CE_LTP)
 
                 if (PE_stoploss_status):
-                    print("waiting for 50sec for Put option...")
+                    logging.info("waiting for 50sec for Put option...")
                     time.sleep(50)
 
                     cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
@@ -203,7 +203,7 @@ def place_order_time(time_hour,time_minute):
                     if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
                 if(CE_stoploss_status):
-                    print("waiting for 50sec for Call option...")
+                    logging.info("waiting for 50sec for Call option...")
                     time.sleep(50)
 
                     cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
@@ -215,7 +215,7 @@ def place_order_time(time_hour,time_minute):
                 
 
         # Fetch all orders
-        print(kite.orders())
+        logging.info("kite orders {}".format(kite.orders()))
         
 def main():
     place_order_time(entry_time_hour,entry_time_min)
