@@ -112,8 +112,8 @@ def place_order(symbol,direction,exchange,o_type,product):
         logging.info("Order placement failed: {}".format(e))
         return None
 
-def stoploss_reached(stoposs_id,limit,cur_price,LTP):
-    return stoposs_id==None and LTP!=None and cur_price>=(LTP*limit)
+def stoploss_reached(stoposs_id,cur_price,LTP_limit):
+    return stoposs_id==None and cur_price>=LTP_limit
 
 def place_order_time(time_hour,time_minute):
 
@@ -164,6 +164,9 @@ def place_order_time(time_hour,time_minute):
             if(CE_order): CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
         
         PE_CE_LTP=min(PE_LTP,CE_LTP)
+        limit_PE=PE_LTP+(PE_CE_LTP*stoploss)
+        limit_CE=CE_LTP+(PE_CE_LTP*stoploss)
+
         PE_stoploss_orderid=None
         CE_stoploss_orderid=None
 
@@ -188,17 +191,16 @@ def place_order_time(time_hour,time_minute):
                 continue
 
             else:
-                limit=1+stoploss
                 
-                PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_CE_LTP)
-                CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,PE_CE_LTP)
+                PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,cur_PE_price,limit_PE)
+                CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,cur_CE_price,limit_CE)
 
                 if (PE_stoploss_status):
                     logging.info("waiting for 50sec for Put option...")
                     time.sleep(50)
 
                     cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,limit,cur_PE_price,PE_CE_LTP)
+                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,cur_PE_price,limit_PE)
 
                     if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
@@ -207,7 +209,7 @@ def place_order_time(time_hour,time_minute):
                     time.sleep(50)
 
                     cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,limit,cur_CE_price,PE_CE_LTP)
+                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,cur_CE_price,limit_CE)
 
                     if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                     
