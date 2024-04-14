@@ -16,17 +16,19 @@ api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
 # Get the access token from the above response and store it in a variable
-access_token = ""
+access_token = "FedEkozOpqUcbFeqefYy7G2Urrb2tdSz"
 kite.set_access_token(access_token)
 
 instruments = kite.instruments()
 instruments=pd.json_normalize(instruments)
 
-instrument_tokens=[]
-ticker_name={}
-folder_paths={}
 
-def date_to_string(date_object):
+instrument_tokens=[]
+token_data={}
+
+def date_to_string(date_str):
+    
+    date_object = datetime.strptime(date_str, "%d-%m-%Y")
     
     # Extract year, month, and day from the datetime object
     year = str(date_object.year)[-2:]  # Extracting last two digits of the year
@@ -48,40 +50,68 @@ def date_to_string(date_object):
 def add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folder_path,expiry_date):
     LTP=kite.quote(exchange+":"+instrument_token)[exchange+":"+instrument_token]["last_price"]
     LTP=int(round(LTP,-2))
+    print(instrument_token,LTP)
     for i in range(LTP-range_num,LTP+range_num+1,100):  
         tradingSym_CE=symbol+str(i)+"CE"
-        CE_ticker=int(instruments[instruments["tradingsymbol"]==tradingSym_CE]["instrument_token"].values[0])
-        ticker_name[CE_ticker]=tradingSym_CE
+        CE_ticker=instruments[instruments["tradingsymbol"]==tradingSym_CE]["instrument_token"]
 
         tradingSym_PE=symbol+str(i)+"PE"
-        PE_ticker=int(instruments[instruments["tradingsymbol"]==tradingSym_PE]["instrument_token"].values[0])
-        ticker_name[PE_ticker]=tradingSym_PE
+        PE_ticker=instruments[instruments["tradingsymbol"]==tradingSym_PE]["instrument_token"]
+
+        if(CE_ticker.empty or PE_ticker.empty):
+            continue
+
+        CE_ticker=int(CE_ticker.values[0])
+        PE_ticker=int(PE_ticker.values[0])
 
         instrument_tokens.append(CE_ticker)
         instrument_tokens.append(PE_ticker)
 
-        folder_paths[CE_ticker]=[folder_path,expiry_date]
-        folder_paths[PE_ticker]=[folder_path,expiry_date]
+        token_data[CE_ticker]=[folder_path,expiry_date,tradingSym_CE]
+        token_data[PE_ticker]=[folder_path,expiry_date,tradingSym_PE]
 
 
 # Reading the input parameters from the liveDataCsv.csv file
 input_df=pd.read_csv("liveDataCsv.csv")
 
 for i in range(len(input_df)):
-    instrument_token=input_df["instrument_token"][i].upper()
-    trading_symbol=input_df["trading_symbol"][i].upper()
-    exchange=input_df["exchange"][i].upper()
+    instrument_token=str(input_df["instrument_token"][i]).upper()
+    trading_symbol=str(input_df["trading_symbol"][i]).upper()
+    exchange=str(input_df["exchange"][i]).upper()
 
-    folder_path=input_df["folder_path"][i].upper()
+    folder_path=str(input_df["folder_path"][i]).upper()
 
     range_num=int(input_df["range_num"][i])
 
     expiry_date=input_df["expiry_date"][i]
     expiry_date_string=date_to_string(expiry_date)
+    expiry_date=datetime.strptime(input_df["expiry_date"][i], "%d-%m-%Y")
+
+    index_token=int(instruments[instruments["tradingsymbol"]==instrument_token]["instrument_token"].values[0])
+    instrument_tokens.append(index_token)
+    token_data[index_token]=[folder_path,expiry_date.strftime("%Y-%m-%d"),instrument_token]
 
     symbol=trading_symbol+expiry_date_string
     add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folder_path,expiry_date.strftime("%Y-%m-%d"))
 
+def create_folder(folder_name,expiry_date):
+    folder_path=folder_name
+    if not os.path.exists(folder_path):
+    # Create the folder
+        os.makedirs(folder_path)
+        print("Folder created successfully at:", folder_path)
+    else:
+        print("Folder already exists at:", folder_path)
+
+    folder_path = os.path.join(folder_name, expiry_date)
+
+    # Check if the folder already exists
+    if not os.path.exists(folder_path):
+        # Create the folder
+        os.makedirs(folder_path)
+        print("Folder created successfully at:", folder_path)
+    else:
+        print("Folder already exists at:", folder_path)
 
 kws = KiteTicker(api_key,access_token)
 
@@ -127,13 +157,16 @@ def on_ticks(ws, ticks):
   logging.debug("Ticks: {}".format(ticks))
 
   for tick in ticks:
-    data={"timestap":tick["exchange_timestamp"],"symbol":ticker_name[tick["instrument_token"]],"ltp":tick["last_price"],"expiry_date":expiry_date}
+    folder_name=token_data[tick["instrument_token"]][0]
+    exp_date=token_data[tick["instrument_token"]][1]
+    tick_sym=token_data[tick["instrument_token"]][2]
+    data={"timestap":tick["exchange_timestamp"],"symbol":tick_sym,"ltp":tick["last_price"],"expiry_date":expiry_date}
     # print(data)
-    folder_name1=folder_paths[tick["instrument_token"]][0]
-    folder_name2=folder_paths[tick["instrument_token"]][1]
-    
-    folder_path = os.path.join(folder_name1, folder_name2)
-    csv_file_name=ticker_name[tick["instrument_token"]]+".csv"
+    create_folder(folder_name,exp_date)
+
+    folder_path = os.path.join(folder_name, exp_date)
+    csv_file_name=tick_sym+".csv"
+
     update_csv_with_json(os.path.join(folder_path,csv_file_name), data)
 
 def on_connect(ws, response):
