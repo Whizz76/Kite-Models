@@ -18,7 +18,7 @@ kite = KiteConnect(api_key=api_key)
 # logging.info(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "TIjBgcW4wlT5s7DvVyVmcfqQd6WxJFyf"
+access_token = ""
 kite.set_access_token(access_token)
 
 net = kite.margins()["equity"]["net"]
@@ -101,6 +101,58 @@ def is_current_time(hour, minute):
     # Check if current hour and minute match the parameters
     return current_time.hour == hour and current_time.minute >= minute
 
+# check if the trade is possible or not:
+
+def is_possible(tradingSym_PE_margin,tradingSym_CE_margin,tradingSym_PE,tradingSym_CE,trade_size,exchange2):
+
+    # Fetch margin detail for order/orders
+    try:
+        # Fetch margin detail for single order
+        order_param_basket = [{
+            "exchange": exchange2,
+            "tradingsymbol": tradingSym_PE,
+            "transaction_type": "SELL",
+            "variety": "regular",
+            "product": "MIS",
+            "order_type": "MARKET",
+            "quantity": trade_size
+            },
+            {
+            "exchange": exchange2,
+            "tradingsymbol": tradingSym_PE_margin,
+            "transaction_type": "BUY",
+            "variety": "regular",
+            "product": "MIS",
+            "order_type": "MARKET",
+            "quantity": trade_size
+            },
+            {
+            "exchange": exchange2,
+            "tradingsymbol": tradingSym_CE,
+            "transaction_type": "SELL",
+            "variety": "regular",
+            "product": "MIS",
+            "order_type": "MARKET",
+            "quantity": trade_size
+            },
+            {
+            "exchange": exchange2,
+            "tradingsymbol": tradingSym_CE_margin,
+            "transaction_type": "BUY",
+            "variety": "regular",
+            "product": "MIS",
+            "order_type": "MARKET",
+            "quantity": trade_size
+            }]
+
+        margin_detail = kite.basket_order_margins(order_param_basket)
+        logging.info("Required margin for given order: {}".format(margin_detail))   
+
+        margin_amount_comt = kite.basket_order_margins(order_param_basket, mode='compact')
+        logging.info("Required margin for basket order in compact form: {}".format(margin_amount_comt)) 
+
+    except Exception as e:
+        logging.info("Error fetching order margin: {}".format(e))
 
 # Place an order
 def place_order(symbol,direction,exchange,o_type,product):
@@ -163,7 +215,7 @@ def place_order_time(time_hour,time_minute):
 
         tradingSym_PE_margin=symbol+str(PE_price)+"PE"
         tradingSym_CE_margin=symbol+str(CE_price)+"CE"
-
+        tradepossible=is_possible(tradingSym_PE_margin,tradingSym_CE_margin,tradingSym_PE,tradingSym_CE,trade_size,exchange2)
         PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
         CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 

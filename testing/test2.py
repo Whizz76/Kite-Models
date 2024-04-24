@@ -14,14 +14,16 @@ add_num=0 # add_num is used to add the number of days to the current date
 api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 test_data={}
+folder_path="NIFTY50"
 # get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
 # data = kite.generate_session("h3PyhDEbw3N5yO7X9WNclOcPpKa6tSjD",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
 # logging.info(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = "V3I6bMTB3VLC50wILVV8eznOK1m4DF6g"
+access_token = "zVBfFfklTxyoxKJdWsTTo57Kk4R2HVia"
 kite.set_access_token(access_token)
 expiry_date="2024-04-18"
+test_date=expiry_date
 
 net = kite.margins()["equity"]["net"]
 logging.info("net: {}".format(net))
@@ -88,33 +90,31 @@ logging.info("symbol {}".format(symbol))
 
 def get_current_time():
     # Get current time
-    time_difference = timedelta(hours=5, minutes=29)
-    return datetime.now()+time_difference
+    time_difference = timedelta(hours=13, minutes=56)
+    return datetime.now()-time_difference
 
 def is_current_time(hour, minute):
     # Get current time
     current_time = get_current_time()
-    
     # Check if current hour and minute match the parameters
-    if(hour==9): return current_time.hour == hour and current_time.minute >= minute and current_time.second>=26
-    else: return current_time.hour == hour and current_time.minute >= minute
+    return current_time.hour >= hour and current_time.minute >= minute
 
 def stoploss_reached(stoposs_id,cur_price,LTP_limit):
     return stoposs_id==None and cur_price>=LTP_limit
 
 def get_ltp(trading_symbol):
-    BNF_file=pd.read_csv("./BNF/"+expiry_date+"/"+trading_symbol+".csv")
+    BNF_file=pd.read_csv("./"+folder_path+"/"+test_date+"/"+trading_symbol+".csv")
     cur_time=get_current_time().strftime("%H:%M:%S")
-    BNF_file=BNF_file[BNF_file["timestamp"]=="2024-04-09 "+cur_time]
+    BNF_file=BNF_file[BNF_file["timestamp"]==expiry_date+" "+cur_time]
     if(not BNF_file.empty): 
         BNF_file=BNF_file.values[0]
         return float(BNF_file[2])
     else: return 0
     
 def place_order(tradingSym,transaction_type,exchange,order_type,product):
-    BNF_file=pd.read_csv("./BNF/"+expiry_date+"/"+tradingSym+".csv")
+    BNF_file=pd.read_csv("./"+folder_path+"/"+test_date+"/"+tradingSym+".csv")
     cur_time=get_current_time().strftime("%H:%M:%S")
-    BNF_file=BNF_file[BNF_file["timestamp"]=="2024-04-09 "+cur_time]
+    BNF_file=BNF_file[BNF_file["timestamp"]==expiry_date+" "+cur_time]
     if(not BNF_file.empty):
         BNF_file=BNF_file.values[0]
         print(BNF_file[0])
@@ -123,8 +123,8 @@ def place_order(tradingSym,transaction_type,exchange,order_type,product):
     else: return None
 
 def sell(tradingSym):
-    BNF_file=pd.read_csv("./BNF/"+expiry_date+"/"+tradingSym+".csv")
-    sell_LTP=BNF_file[BNF_file["timestamp"].str.contains("2024-04-09 15:18")].iloc[0]
+    BNF_file=pd.read_csv("./"+folder_path+"/"+expiry_date+"/"+tradingSym+".csv")
+    sell_LTP=BNF_file[BNF_file["timestamp"].str.contains(test_date+" "+"15:18")].iloc[0]
     print("sell order {} price {}".format(tradingSym,sell_LTP["ltp"]))
     return float(sell_LTP["ltp"])
 
@@ -149,7 +149,7 @@ def place_order_time(time_hour,time_minute):
 
     if(placeOrder):
 
-        token_ltp = kite.quote(temp)[temp]['last_price']
+        token_ltp = 22200
         SP=int(round(token_ltp,-2))
         logging.info("SP: {}".format(SP))
         
@@ -168,8 +168,10 @@ def place_order_time(time_hour,time_minute):
         tradingSym_PE_margin=symbol+str(PE_price)+"PE"
         tradingSym_CE_margin=symbol+str(CE_price)+"CE"
         
-        PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        PE_margin=0.45
+        CE_margin=0.35
+        # PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        # CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
         test_data["PE_margin_buy"]=PE_margin
         test_data["CE_margin_buy"]=CE_margin
         
@@ -200,16 +202,16 @@ def place_order_time(time_hour,time_minute):
             cur_PE_price=get_ltp(tradingSym_PE)
             cur_CE_price=get_ltp(tradingSym_CE)
 
-            limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
-            limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
+            if(cur_PE_price): limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
+            if(cur_CE_price): limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
 
             if is_current_time(exit_time_hour,exit_time_min):
 
                 if(PE_stoploss_orderid==None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                 if(CE_stoploss_orderid==None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
 
-                if(PE_margin): PE_sell_order=sell(tradingSym_PE_margin)
-                if(CE_margin): CE_sell_order=sell(tradingSym_CE_margin)
+                if(PE_margin): PE_sell_order=0.15
+                if(CE_margin): CE_sell_order=0.05
 
                 test_data["PE_buy"]=PE_stoploss_orderid
                 test_data["CE_buy"]=CE_stoploss_orderid
@@ -223,8 +225,8 @@ def place_order_time(time_hour,time_minute):
 
             if(PE_stoploss_orderid!=None and CE_stoploss_orderid!=None):
                 # logging.info("waiting till the exit time...")
-                if(PE_margin): PE_sell_order=sell(tradingSym_PE_margin)
-                if(CE_margin): CE_sell_order=sell(tradingSym_CE_margin)
+                if(PE_margin): PE_sell_order=0.15
+                if(CE_margin): CE_sell_order=0.05
 
                 test_data["PE_buy"]=PE_stoploss_orderid
                 test_data["CE_buy"]=CE_stoploss_orderid
@@ -247,7 +249,7 @@ def place_order_time(time_hour,time_minute):
 
                 if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
                 if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                         
+
             time.sleep(1)
                 
 

@@ -16,7 +16,7 @@ api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
 # Get the access token from the above response and store it in a variable
-access_token = "FedEkozOpqUcbFeqefYy7G2Urrb2tdSz"
+access_token = "X1YL6YkaRzKviFoQSlaVHb0sSwkKQNbJ"
 kite.set_access_token(access_token)
 
 instruments = kite.instruments()
@@ -94,6 +94,9 @@ for i in range(len(input_df)):
     symbol=trading_symbol+expiry_date_string
     add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folder_path,expiry_date.strftime("%Y-%m-%d"))
 
+for token in instrument_tokens:
+    print(token)
+
 def create_folder(folder_name,expiry_date):
     folder_path=folder_name
     if not os.path.exists(folder_path):
@@ -167,7 +170,7 @@ def on_ticks(ws, ticks):
     folder_path = os.path.join(folder_name, exp_date)
     csv_file_name=tick_sym+".csv"
 
-    update_csv_with_json(os.path.join(folder_path,csv_file_name), data)
+    # update_csv_with_json(os.path.join(folder_path,csv_file_name), data)
 
 def on_connect(ws, response):
   # Subscribe to a list of instrument_tokens
