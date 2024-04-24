@@ -101,68 +101,60 @@ def is_current_time(hour, minute):
     # Check if current hour and minute match the parameters
     return current_time.hour == hour and current_time.minute >= minute
 
-# check if the trade is possible or not:
+# check find the number of lots that can be traded 
 
-def is_possible(tradingSym_PE_margin,tradingSym_CE_margin,tradingSym_PE,tradingSym_CE,trade_size,exchange2):
-
+def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
     # Fetch margin detail for order/orders
+    num_lots=0
+    order_param_basket=[]
+    for sym in sell_sym:
+        order_param_basket.append(
+            {
+                "exchange": exchange2,
+                "tradingsymbol": sym,
+                "transaction_type": "SELL",
+                "variety": "regular",
+                "product": "MIS",
+                "order_type": "MARKET",
+                "quantity": trade_size
+            }
+        )
+    for sym in buy_sym:
+        order_param_basket.append(
+            {
+                "exchange": exchange2,
+                "tradingsymbol": sym,
+                "transaction_type": "BUY",
+                "variety": "regular",
+                "product": "MIS",
+                "order_type": "MARKET",
+                "quantity": trade_size
+            }
+        )
     try:
         # Fetch margin detail for single order
-        order_param_basket = [{
-            "exchange": exchange2,
-            "tradingsymbol": tradingSym_PE,
-            "transaction_type": "SELL",
-            "variety": "regular",
-            "product": "MIS",
-            "order_type": "MARKET",
-            "quantity": trade_size
-            },
-            {
-            "exchange": exchange2,
-            "tradingsymbol": tradingSym_PE_margin,
-            "transaction_type": "BUY",
-            "variety": "regular",
-            "product": "MIS",
-            "order_type": "MARKET",
-            "quantity": trade_size
-            },
-            {
-            "exchange": exchange2,
-            "tradingsymbol": tradingSym_CE,
-            "transaction_type": "SELL",
-            "variety": "regular",
-            "product": "MIS",
-            "order_type": "MARKET",
-            "quantity": trade_size
-            },
-            {
-            "exchange": exchange2,
-            "tradingsymbol": tradingSym_CE_margin,
-            "transaction_type": "BUY",
-            "variety": "regular",
-            "product": "MIS",
-            "order_type": "MARKET",
-            "quantity": trade_size
-            }]
+        margin_net_available = kite.margins()["equity"]["net"]
 
         margin_detail = kite.basket_order_margins(order_param_basket)
-        logging.info("Required margin for given order: {}".format(margin_detail))   
-
-        margin_amount_comt = kite.basket_order_margins(order_param_basket, mode='compact')
-        logging.info("Required margin for basket order in compact form: {}".format(margin_amount_comt)) 
+        margin_required = margin_detail["initial"]["total"]
+        num_lots=int(margin_net_available/margin_required)
+        logging.info("Available margin: {} , Required margin: {}".format(margin_net_available,margin_required))   
 
     except Exception as e:
         logging.info("Error fetching order margin: {}".format(e))
 
+    logging.info("num_lots: {}".format(num_lots))
+    return num_lots
+
 # Place an order
-def place_order(symbol,direction,exchange,o_type,product):
+def place_order(symbol,direction,exchange,o_type,product,quantity):
     logging.info("placing {} order".format(direction))
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
                                     exchange=exchange,
                                     transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
-                                    quantity=trade_size,
+                                    quantity=quantity,
                                     variety=kite.VARIETY_REGULAR,
                                     order_type=o_type,
                                     product=product)
@@ -182,6 +174,26 @@ def min_val(cur_price,stoploss,min_ltp):
     if(lim_ltp<min_ltp): 
         min_ltp=lim_ltp
     return min_ltp
+
+# place stoploss order
+
+def place_stoploss_order(tradingSym,exchange,product,order_type,quantity,direction):
+    stoploss_orderid=place_order(tradingSym,direction,exchange,order_type,product,quantity)
+    if(stoploss_orderid):
+
+        direction2="buy" if direction=="sell" else "sell"
+        order=place_order(tradingSym,direction2,exchange,order_type,product,quantity)
+        time.sleep(1)
+
+        if(order):
+
+            stoploss_orderid=None
+            LTP=kite.quote(exchange+":"+tradingSym)[exchange+":"+tradingSym]['last_price']
+            limit=LTP*(1+stoploss)
+            return stoploss_orderid,limit
+        
+        else: return stoploss_orderid,None
+    return None
 
 def place_order_time(time_hour,time_minute):
 
@@ -215,64 +227,77 @@ def place_order_time(time_hour,time_minute):
 
         tradingSym_PE_margin=symbol+str(PE_price)+"PE"
         tradingSym_CE_margin=symbol+str(CE_price)+"CE"
-        tradepossible=is_possible(tradingSym_PE_margin,tradingSym_CE_margin,tradingSym_PE,tradingSym_CE,trade_size,exchange2)
-        PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-        CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+        sell_sym=[tradingSym_PE,tradingSym_CE]
+        buy_sym=[tradingSym_PE_margin,tradingSym_CE_margin]
+        num_lots=num_lots_fun(sell_sym,buy_sym,trade_size,exchange2)
 
-        PE_LTP=None
-        CE_LTP=None
+        if(num_lots!=0):
+            quantity=trade_size*num_lots
 
-        if(PE_margin and CE_margin): 
-            PE_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-            time.sleep(1)
-            if(PE_order): PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+            PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+            CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
 
-            CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-            time.sleep(1)
-            if(CE_order): CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-        
-        limit_PE=PE_LTP*(1+stoploss)
-        limit_CE=CE_LTP*(1+stoploss)
+            PE_LTP=None
+            CE_LTP=None
 
-        PE_stoploss_orderid=None
-        CE_stoploss_orderid=None
+            if(PE_margin and CE_margin): 
+                PE_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                time.sleep(1)
+                if(PE_order): PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
 
-        while True:
+                CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                time.sleep(1)
+                if(CE_order): CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+            
+            limit_PE=PE_LTP*(1+stoploss)
+            limit_CE=CE_LTP*(1+stoploss)
 
-            cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-            cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+            PE_stoploss_orderid=None
+            CE_stoploss_orderid=None
 
-            limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
-            limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
+            while True:
+
+                cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+
+                limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
+                limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
 
 
-            if is_current_time(exit_time_hour,exit_time_min):
+                if is_current_time(exit_time_hour,exit_time_min):
 
-                if(PE_stoploss_orderid==None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                if(CE_stoploss_orderid==None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+                    if(PE_stoploss_orderid==None): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                    if(CE_stoploss_orderid==None): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
 
-                if(PE_margin): PE_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                if(CE_margin): CE_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                
-                break
-
-            elif(PE_stoploss_orderid!=None and CE_stoploss_orderid!=None):
-                time.sleep(60)
-                logging.info("stoploss reached, placing the sell orders....")
-                if(PE_margin): PE_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                if(CE_margin): CE_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                break
-
-            else:
-                
-                PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,cur_PE_price,limit_PE)
-                CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,cur_CE_price,limit_CE)
-                
-                if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
-                if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS)
+                    if(PE_margin): PE_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                    if(CE_margin): CE_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                     
-            time.sleep(1)
-                
+                    break
+
+                # elif(PE_stoploss_orderid!=None and CE_stoploss_orderid!=None):
+                #     time.sleep(60)
+                #     logging.info("stoploss reached, placing the sell orders....")
+                #     if(PE_margin): PE_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                #     if(CE_margin): CE_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                #     break
+
+                else:
+                    
+                    PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,cur_PE_price,limit_PE)
+                    CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,cur_CE_price,limit_CE)
+                    
+                    if(PE_stoploss_status): 
+                        PE_stoploss_order=place_stoploss_order(tradingSym_PE,kite_exchange,kite.PRODUCT_MIS,kite.ORDER_TYPE_MARKET,quantity,"buy")
+                        if(PE_stoploss_order):
+                            PE_stoploss_orderid,limit_PE=PE_stoploss_order
+                    
+                    if(CE_stoploss_status): 
+                        CE_stoploss_order=place_stoploss_order(tradingSym_CE,kite_exchange,kite.PRODUCT_MIS,kite.ORDER_TYPE_MARKET,quantity,"buy")
+                        if(CE_stoploss_order):
+                            CE_stoploss_orderid,limit_CE=CE_stoploss_order
+                        
+                time.sleep(1)
+                    
 
         # Fetch all orders
         logging.info("kite orders {}".format(kite.orders()))
