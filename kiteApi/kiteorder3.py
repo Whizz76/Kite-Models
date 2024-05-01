@@ -24,7 +24,7 @@ kite.set_access_token(access_token)
 net = kite.margins()["equity"]["net"]
 logging.info("net: {}".format(net))
 
-trade_counter={}
+total_orders=0
 # Initializing the input parameters
 # -----------------------------------------------------------------------
 
@@ -51,6 +51,8 @@ trade_size=int(input_values["quantity"])
 symbol=str(input_values["instrument_token"]).upper()
 sym=str(input_values["trading_symbol"]).upper()
 
+is_last_week=int(input_values["last_week"])
+
 exchange1=str(input_values["exchange"]).upper()
 exchange2="NFO"
 if(exchange1=="BSE"): exchange2="BFO"
@@ -75,11 +77,9 @@ month_index = str(current_date.month)
 # Extract day
 day = str(current_date.day) 
 
-future_date = current_date + timedelta(days=7)
-
 result_string = ""
 
-if future_date.month != current_date.month:
+if is_last_week:
     # If yes, add the first three letters of the current month
     result_string=year_last_two_digits+ current_date.strftime("%b").upper()
 
@@ -106,6 +106,7 @@ def is_current_time(hour, minute):
 def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
+    margin_percentage=0.9
     order_param_basket=[]
     for sym in sell_sym:
         order_param_basket.append(
@@ -134,6 +135,7 @@ def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
     try:
         # Fetch margin detail for single order
         margin_net_available = kite.margins()["equity"]["net"]
+        margin_net_available=margin_net_available*margin_percentage
 
         margin_detail = kite.basket_order_margins(order_param_basket)
         margin_required = margin_detail["final"]["total"]
@@ -158,9 +160,14 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
                                     variety=kite.VARIETY_REGULAR,
                                     order_type=o_type,
                                     product=product)
-        logging.info("Order placed. ID is: {}".format(order_id))
-        if(direction!="buy"): trade_counter[symbol]+=1
-        return order_id
+        
+        if(order_id['status']=="COMPLETE"): 
+            logging.info("Order placed. ID is: {}".format(order_id))
+            return order_id
+        
+        else:
+            logging.info("Error {}".format(order_id))
+            return None
     
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
@@ -180,7 +187,7 @@ def min_val(cur_price,stoploss,min_ltp):
 
 def place_stoploss_order(tradingSym,exchange,product,order_type,quantity,direction):
 
-    if(trade_counter[tradingSym]>=3 or is_current_time(13,00)): 
+    if(total_orders>=3 or is_current_time(13,00)): 
         return None
     
     order=place_order(tradingSym,direction,exchange,order_type,product,quantity)
@@ -231,11 +238,8 @@ def place_order_time(time_hour,time_minute):
         sell_sym=[tradingSym_PE,tradingSym_CE]
         buy_sym=[tradingSym_PE_margin,tradingSym_CE_margin]
         num_lots=num_lots_fun(sell_sym,buy_sym,trade_size,exchange2)
+        no_order=False
 
-        trade_counter[tradingSym_PE]=0
-        trade_counter[tradingSym_CE]=0
-        trade_counter[tradingSym_PE_margin]=0
-        trade_counter[tradingSym_CE_margin]=0
 
         if(num_lots!=0):
             quantity=trade_size*num_lots
@@ -281,8 +285,20 @@ def place_order_time(time_hour,time_minute):
                     break
 
                 elif(PE_stoploss_orderid!=None and CE_stoploss_orderid!=None):
+                    if(no_order): continue
+
+                    total_orders=total_orders+1
+                    if(total_orders>=3 or is_current_time(13,00)): 
+                        no_order=True
+                        continue
 
                     logging.info("stoploss reached, again placing the sell orders....")
+
+                    token_ltp = kite.quote(temp)[temp]['last_price']
+                    SP=int(round(token_ltp,-2))
+                    logging.info("SP: {}".format(SP))
+                    tradingSym_PE=symbol+str(SP)+"PE"
+                    tradingSym_CE=symbol+str(SP)+"CE"
 
                     PE_stoploss_order=place_stoploss_order(tradingSym_PE,kite_exchange,kite.PRODUCT_MIS,kite.ORDER_TYPE_MARKET,quantity,"sell")
                     if(PE_stoploss_order):
