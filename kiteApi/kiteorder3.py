@@ -179,6 +179,8 @@ def stoploss_reached(stoposs_id,cur_price,LTP_limit):
 # Get the minimum LTP_stoploss_limit
 def min_val(cur_price,stoploss,min_ltp):
     lim_ltp=cur_price*(1+stoploss)
+    if(min_ltp==None): return lim_ltp
+
     if(lim_ltp<min_ltp): 
         min_ltp=lim_ltp
     return min_ltp
@@ -195,10 +197,11 @@ def place_stoploss_order(tradingSym,exchange,product,order_type,quantity,directi
 
     if(order):
 
+        status=True
         stoploss_orderid=None
         LTP=kite.quote(exchange+":"+tradingSym)[exchange+":"+tradingSym]['last_price']
         limit=LTP*(1+stoploss)
-        return stoploss_orderid,limit
+        return stoploss_orderid,limit,status
     
     else: return None
 
@@ -249,18 +252,27 @@ def place_order_time(time_hour,time_minute):
 
             PE_LTP=None
             CE_LTP=None
+            limit_PE=None
+            limit_CE=None
+
+            PE_sell_status=False
+            CE_sell_status=False
 
             if(PE_margin and CE_margin): 
                 PE_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                 time.sleep(1)
-                if(PE_order): PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                if(PE_order): 
+                    PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                    PE_sell_status=True
 
                 CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                 time.sleep(1)
-                if(CE_order): CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+                if(CE_order): 
+                    CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+                    CE_sell_status=True
             
-            limit_PE=PE_LTP*(1+stoploss)
-            limit_CE=CE_LTP*(1+stoploss)
+            if(PE_LTP): limit_PE=PE_LTP*(1+stoploss)
+            if(CE_LTP): limit_CE=CE_LTP*(1+stoploss)
 
             PE_stoploss_orderid=None
             CE_stoploss_orderid=None
@@ -269,6 +281,9 @@ def place_order_time(time_hour,time_minute):
 
                 cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                 cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+
+                if(PE_sell_status==False): PE_stoploss_orderid=True
+                if(CE_sell_status==False): CE_stoploss_orderid=True
 
                 limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
                 limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
@@ -288,7 +303,7 @@ def place_order_time(time_hour,time_minute):
                     if(no_order): continue
 
                     total_orders=total_orders+1
-                    if(total_orders>=3 or is_current_time(13,00)): 
+                    if(total_orders>3 or is_current_time(13,00)): 
                         no_order=True
                         continue
 
@@ -302,19 +317,21 @@ def place_order_time(time_hour,time_minute):
 
                     PE_stoploss_order=place_stoploss_order(tradingSym_PE,kite_exchange,kite.PRODUCT_MIS,kite.ORDER_TYPE_MARKET,quantity,"sell")
                     if(PE_stoploss_order):
-                        PE_stoploss_orderid,limit_PE=PE_stoploss_order
+                        PE_stoploss_orderid,limit_PE,PE_sell_status=PE_stoploss_order
+                    else: PE_sell_status=False
 
                     CE_stoploss_order=place_stoploss_order(tradingSym_CE,kite_exchange,kite.PRODUCT_MIS,kite.ORDER_TYPE_MARKET,quantity,"sell")
                     if(CE_stoploss_order):
-                        CE_stoploss_orderid,limit_CE=CE_stoploss_order
+                        CE_stoploss_orderid,limit_CE,CE_sell_status=CE_stoploss_order
+                    else: CE_sell_status=False
                     
 
                 else:
                     PE_stoploss_status=stoploss_reached(PE_stoploss_orderid,cur_PE_price,limit_PE)
                     CE_stoploss_status=stoploss_reached(CE_stoploss_orderid,cur_CE_price,limit_CE)
                     
-                    if(PE_stoploss_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-                    if(CE_stoploss_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                    if(PE_stoploss_status and PE_sell_status): PE_stoploss_orderid=place_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                    if(CE_stoploss_status and CE_sell_status): CE_stoploss_orderid=place_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                             
                 time.sleep(1)
                     
