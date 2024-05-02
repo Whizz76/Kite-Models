@@ -9,7 +9,7 @@ import json
 import requests
 
 logging.basicConfig(level=logging.DEBUG)
-logging.info("Executing kiteorder3.py")
+logging.info("Executing test4.py")
 
 api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
@@ -19,8 +19,9 @@ kite = KiteConnect(api_key=api_key)
 # logging.info(data)
 
 # Get the access token from the above response and store it in a variable
-access_token = ""
+access_token = "JLMF4eJ9onl1svfEWoJvQVOTbI2KbJcQ"
 kite.set_access_token(access_token)
+api_url = "http://localhost:5000/random_number"
 
 net = kite.margins()["equity"]["net"]
 logging.info("net: {}".format(net))
@@ -149,25 +150,54 @@ def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
     logging.info("num_lots: {}".format(num_lots))
     return num_lots
 
+def get_price():
+    # Make a GET request to the API endpoint
+    response = requests.get(api_url)
+
+    # Check if the request was successful (status code 200)
+    if response.status_code == 200:
+        # Extract the JSON data from the response
+        data = response.json()
+        # Extract the random number from the JSON data
+        random_number = data['random_number']
+        print("get_price {} cur_time {}".format(random_number,datetime.now() ))
+        return random_number
+    else:
+        print("Error:", response.status_code)
+        return None
+
 # Place an order
 def place_order(symbol,direction,exchange,o_type,product,quantity):
     logging.info("placing {} order current time {}".format(direction,datetime.now().time()))
     
     try:
-        order_id = kite.place_order(tradingsymbol=symbol,
-                                    exchange=exchange,
-                                    transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
-                                    quantity=quantity,
-                                    variety=kite.VARIETY_REGULAR,
-                                    order_type=o_type,
-                                    product=product)
+        # order_id = kite.place_order(tradingsymbol=symbol,
+        #                             exchange=exchange,
+        #                             transaction_type=kite.TRANSACTION_TYPE_BUY if direction == "buy" else kite.TRANSACTION_TYPE_SELL,
+        #                             quantity=quantity,
+        #                             variety=kite.VARIETY_REGULAR,
+        #                             order_type=o_type,
+        #                             product=product)
         
-        if(order_id['status']=="COMPLETE"): 
-            logging.info("Order placed. ID is: {}".format(order_id))
-            return order_id
+        # if(order_id['status']=="COMPLETE"): 
+        #     logging.info("Order placed. ID is: {}".format(order_id))
+        #     return order_id
         
+        # else:
+        #     logging.info("Error {}".format(order_id))
+        #     return None
+        res = requests.get(api_url)
+
+        # Check if the request was successful (status code 200)
+        if res.status_code == 200:
+            # Extract the JSON data from the response
+            d = res.json()
+            # Extract the random number from the JSON data
+            ran_num = d['random_number']
+            print("price {} sym {} direction {} order time {}".format(ran_num,symbol,direction,datetime.now() ))
+            return ran_num
         else:
-            logging.info("Error {}".format(order_id))
+            print("Error:", res.status_code)
             return None
     
     except Exception as e:
@@ -200,7 +230,7 @@ def place_stoploss_order(tradingSym,exchange,product,order_type,quantity,directi
 
         status=True
         stoploss_orderid=None
-        LTP=kite.quote(exchange+":"+tradingSym)[exchange+":"+tradingSym]['last_price']
+        LTP=get_price()
         limit=LTP*(1+stoploss)
         return stoploss_orderid,limit,status
     
@@ -220,7 +250,7 @@ def place_order_time(time_hour,time_minute):
 
     if(placeOrder):
 
-        token_ltp = kite.quote(temp)[temp]['last_price']
+        token_ltp = get_price()
         SP=int(round(token_ltp,-2))
         logging.info("SP: {}".format(SP))
         
@@ -263,13 +293,13 @@ def place_order_time(time_hour,time_minute):
                 PE_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                 time.sleep(1)
                 if(PE_order): 
-                    PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                    PE_LTP=get_price()
                     PE_sell_status=True
 
                 CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                 time.sleep(1)
                 if(CE_order): 
-                    CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+                    CE_LTP=get_price()
                     CE_sell_status=True
             
             if(PE_LTP): limit_PE=PE_LTP*(1+stoploss)
@@ -280,9 +310,8 @@ def place_order_time(time_hour,time_minute):
 
             while True:
 
-                cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-
+                cur_PE_price=get_price()
+                cur_CE_price=get_price()
                 if(PE_sell_status==False): PE_stoploss_orderid=True
                 if(CE_sell_status==False): CE_stoploss_orderid=True
 
@@ -315,7 +344,7 @@ def place_order_time(time_hour,time_minute):
 
                     logging.info("stoploss reached, again placing the sell orders....")
 
-                    token_ltp = kite.quote(temp)[temp]['last_price']
+                    token_ltp = get_price()
                     SP=int(round(token_ltp,-2))
                     logging.info("SP: {}".format(SP))
                     tradingSym_PE=symbol+str(SP)+"PE"
