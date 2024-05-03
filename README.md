@@ -9,3 +9,7 @@
 6. [practice](https://github.com/Whizz76/alphaFund_ai/tree/main/Practice) :- This folder contains code that were written only for practice
 7. [kiteApi](https://github.com/Whizz76/alphaAiFund/tree/main/kiteApi)  :- Contains all files that utilizes kite api
 8. [kiteorder3.py](https://github.com/Whizz76/alphaAiFund/blob/main/kiteApi/kiteorder3.py) :- Contains the code to execute the kite orders using the current strategy. To run this file currently, require the access token that is generated manually after login and place that access token to execute the file
+9. [input.csv](https://github.com/Whizz76/alphaAiFund/blob/main/kiteApi/input.csv)  :- It contains the parameters to execute the kite order on a particular weekday
+10. [liveData](https://github.com/Whizz76/alphaAiFund/blob/main/kiteApi/liveRecordWeb.py) :- It contains the code to perform live data recording for different tokens
+11. [liveDataCsv.csv](https://github.com/Whizz76/alphaAiFund/blob/main/kiteApi/liveDataCsv.csv)  :- It contains the parameters to record live Data each day
+ 
