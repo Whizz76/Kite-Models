@@ -26,10 +26,9 @@ instruments=pd.json_normalize(instruments)
 instrument_tokens=[]
 token_data={}
 
-def date_to_string(date_str):
+def date_to_string(date_str,is_last_week):
     
     date_object = datetime.strptime(date_str, "%d-%m-%Y")
-    
     # Extract year, month, and day from the datetime object
     year = str(date_object.year)[-2:]  # Extracting last two digits of the year
 
@@ -38,12 +37,13 @@ def date_to_string(date_str):
     else: month = str(date_object.month).zfill(2)  # Ensure month is zero-padded if necessary
 
     
-    if date_object.day<10:
-        day = str(date_object.day).zfill(1)
-    else: day = str(date_object.day).zfill(2)  # Ensure day is zero-padded if necessary
+    day = str(date_object.day).zfill(2)  # Ensure day is zero-padded if necessary
     
     # Concatenate year, month, and day to form the desired string
     date_string = year + month + day
+    
+    if(is_last_week):
+        date_string=year+date_object.strftime("%b").upper()
     
     return date_string
 
@@ -59,10 +59,13 @@ def add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folde
         PE_ticker=instruments[instruments["tradingsymbol"]==tradingSym_PE]["instrument_token"]
 
         if(CE_ticker.empty or PE_ticker.empty):
+            print(instrument_token,tradingSym_CE,tradingSym_PE)
             continue
 
         CE_ticker=int(CE_ticker.values[0])
         PE_ticker=int(PE_ticker.values[0])
+
+        # print(tradingSym_CE,tradingSym_PE)
 
         instrument_tokens.append(CE_ticker)
         instrument_tokens.append(PE_ticker)
@@ -84,7 +87,8 @@ for i in range(len(input_df)):
     range_num=int(input_df["range_num"][i])
 
     expiry_date=input_df["expiry_date"][i]
-    expiry_date_string=date_to_string(expiry_date)
+    is_last_week=int(input_df["last_week"][i])
+    expiry_date_string=date_to_string(expiry_date,is_last_week)
     expiry_date=datetime.strptime(input_df["expiry_date"][i], "%d-%m-%Y")
 
     index_token=int(instruments[instruments["tradingsymbol"]==instrument_token]["instrument_token"].values[0])
@@ -92,10 +96,9 @@ for i in range(len(input_df)):
     token_data[index_token]=[folder_path,expiry_date.strftime("%Y-%m-%d"),instrument_token]
 
     symbol=trading_symbol+expiry_date_string
+    print(expiry_date)
     add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folder_path,expiry_date.strftime("%Y-%m-%d"))
 
-for token in instrument_tokens:
-    print(token)
 
 def create_folder(folder_name,expiry_date):
     folder_path=folder_name
@@ -157,7 +160,7 @@ def update_csv_with_json(csv_file, json_data):
 
 def on_ticks(ws, ticks):
 
-  logging.debug("Ticks: {}".format(ticks))
+#   logging.debug("Ticks: {}".format(ticks))
 
   for tick in ticks:
     folder_name=token_data[tick["instrument_token"]][0]
@@ -170,7 +173,7 @@ def on_ticks(ws, ticks):
     folder_path = os.path.join(folder_name, exp_date)
     csv_file_name=tick_sym+".csv"
 
-    # update_csv_with_json(os.path.join(folder_path,csv_file_name), data)
+    update_csv_with_json(os.path.join(folder_path,csv_file_name), data)
 
 def on_connect(ws, response):
   # Subscribe to a list of instrument_tokens
