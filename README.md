@@ -7,5 +7,5 @@
 4. [testData.py](https://github.com/Whizz76/alphaFund_ai/blob/main/testData.py) :- This script file contains code for getting the net gain/loss if we enter at 10:00 AM keeping the stoploss 30%
 5. [data30.0.csv](https://github.com/Whizz76/alphaFund_ai/blob/main/data30.0.csv) :- This the csv file that we got after running the above script file
 6. [practice](https://github.com/Whizz76/alphaFund_ai/tree/main/Practice) :- This folder contains code that were written only for practice
-7. [kiteApi](https://github.com/Whizz76/alphaAiFund/tree/main/kiteApi)  :- Contains all files that utilties kite api
+7. [kiteApi](https://github.com/Whizz76/alphaAiFund/tree/main/kiteApi)  :- Contains all files that utilizes kite api
 8. [kiteorder3.py](https://github.com/Whizz76/alphaAiFund/blob/main/kiteApi/kiteorder3.py) :- Contains the code to execute the kite orders using the current strategy.
