@@ -1,4 +1,4 @@
-# alphaFund_ai
+# AlphaAiFund
 
 ## Important Info: 
 1. [ newTestData.py ](https://github.com/Whizz76/alphaFund_ai/blob/main/newTestData.py) :- This script contains the code to get the net gain/loss at different intervals i.e from 9:20 AM to 12:00 PM and varying the stoploss values between 5% to 50%
