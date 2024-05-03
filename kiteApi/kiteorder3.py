@@ -47,7 +47,7 @@ exit_time_hour=int(input_values["exit_time"][0:2])
 exit_time_min=int(input_values["exit_time"][-2:])
 
 stoploss=float(input_values["stoploss"])
-trade_size=int(input_values["quantity"])
+lot_size=int(input_values["quantity"])
 
 symbol=str(input_values["instrument_token"]).upper()
 sym=str(input_values["trading_symbol"]).upper()
@@ -61,7 +61,7 @@ if(exchange1=="BSE"): exchange2="BFO"
 margin_range=int(input_values["margin_range"])
 
 # logging.info(entry_time_hour,entry_time_min,exit_time_hour,exit_time_min)
-# logging.info(stoploss,trade_size,symbol,trading_symbol,margin_range)
+# logging.info(stoploss,lot_size,symbol,trading_symbol,margin_range)
 # -----------------------------------------------------------------------
 kite_exchange=kite.EXCHANGE_NFO
 if(exchange2=="BFO"): kite_exchange=kite.EXCHANGE_BFO
@@ -99,12 +99,13 @@ def is_current_time(hour, minute):
     # Get current time
     current_time = datetime.now().time()
     
-    # Check if current hour and minute match the parameters
+    # Check if current hour and minute match the parameters 
+    # (start the process if the current time is greater than or equal to the given time)
     return current_time.hour >= hour and current_time.minute >= minute
 
 # check find the number of lots that can be traded 
 
-def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
+def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
     margin_percentage=0.9
@@ -118,7 +119,7 @@ def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
                 "variety": "regular",
                 "product": "MIS",
                 "order_type": "MARKET",
-                "quantity": trade_size
+                "quantity": lot_size
             }
         )
     for sym in buy_sym:
@@ -130,16 +131,20 @@ def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
                 "variety": "regular",
                 "product": "MIS",
                 "order_type": "MARKET",
-                "quantity": trade_size
+                "quantity": lot_size
             }
         )
     try:
         # Fetch margin detail for single order
         margin_net_available = kite.margins()["equity"]["net"]
+
+        # Using a percentage of the available margin
         margin_net_available=margin_net_available*margin_percentage
 
         margin_detail = kite.basket_order_margins(order_param_basket)
         margin_required = margin_detail["final"]["total"]
+
+        # Calculate the number of lots that can be traded
         num_lots=int(margin_net_available/margin_required)
         logging.info("Available margin: {} , Required margin: {}".format(margin_net_available,margin_required))   
 
@@ -148,6 +153,15 @@ def num_lots_fun(sell_sym,buy_sym,trade_size,exchange2):
 
     logging.info("num_lots: {}".format(num_lots))
     return num_lots
+
+# Check if the order was successful
+
+def is_order_successful(order_id):
+    received_order = kite.orders()
+    for order in received_order:
+        if order["order_id"] == int(order_id):
+            return order["status"] == "COMPLETE"
+    return False
 
 # Place an order
 def place_order(symbol,direction,exchange,o_type,product,quantity):
@@ -162,7 +176,8 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
                                     order_type=o_type,
                                     product=product)
         
-        if(order_id['status']=="COMPLETE"): 
+        # If the order was successful return the order id
+        if(is_order_successful(order_id)): 
             logging.info("Order placed. ID is: {}".format(order_id))
             return order_id
         
@@ -174,6 +189,7 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
         logging.info("Order placement failed: {}".format(e))
         return None
 
+# Check if the stoploss has been reached
 def stoploss_reached(stoposs_id,cur_price,LTP_limit):
     return stoposs_id==None and cur_price>=LTP_limit
 
@@ -187,9 +203,9 @@ def min_val(cur_price,stoploss,min_ltp):
     return min_ltp
 
 # place stoploss order
-
 def place_stoploss_order(tradingSym,exchange,product,order_type,quantity,direction):
 
+    # Check if the total orders are greater than 3 or the current time is greater than 13:00 to execute a new order
     if(total_orders>3 or is_current_time(13,00)): 
         return None
     
@@ -241,12 +257,12 @@ def place_order_time(time_hour,time_minute):
 
         sell_sym=[tradingSym_PE,tradingSym_CE]
         buy_sym=[tradingSym_PE_margin,tradingSym_CE_margin]
-        num_lots=num_lots_fun(sell_sym,buy_sym,trade_size,exchange2)
+        num_lots=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
         no_order=False
 
 
         if(num_lots!=0):
-            quantity=trade_size*num_lots
+            quantity=lot_size*num_lots
 
             PE_margin=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
             CE_margin=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
@@ -255,26 +271,28 @@ def place_order_time(time_hour,time_minute):
             CE_LTP=None
             limit_PE=None
             limit_CE=None
-
+            
+            # Check if the sell order have been executed or not
             PE_sell_status=False
             CE_sell_status=False
 
             if(PE_margin and CE_margin): 
                 PE_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-                time.sleep(1)
                 if(PE_order): 
+                    time.sleep(1)
                     PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                     PE_sell_status=True
 
                 CE_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-                time.sleep(1)
                 if(CE_order): 
+                    time.sleep(1)
                     CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
                     CE_sell_status=True
             
             if(PE_LTP): limit_PE=PE_LTP*(1+stoploss)
             if(CE_LTP): limit_CE=CE_LTP*(1+stoploss)
-
+            
+            # A paramter ti check if the stoploss order has been executed or not
             PE_stoploss_orderid=None
             CE_stoploss_orderid=None
 
