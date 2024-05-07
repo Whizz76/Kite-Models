@@ -159,7 +159,7 @@ def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
 def is_order_successful(order_id):
     received_order = kite.orders()
     for order in received_order:
-        if order["order_id"] == int(order_id):
+        if order["order_id"] == str(order_id):
             return order["status"] == "COMPLETE"
     return False
 
