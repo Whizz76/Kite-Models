@@ -181,7 +181,7 @@ def is_order_successful(order_id):
     received_order = kite.orders()
     for order in received_order:
         if order["order_id"] == int(order_id):
-            return order["status"] == "COMPLETE"
+            return order["status"] != "REJECTED"
     return False
 
 # Place an order
