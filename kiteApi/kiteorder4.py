@@ -211,7 +211,8 @@ def place_order(symbol,direction,exchange,o_type,product,quantity,price):
 # placing a SL-Limit order
 def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price):
     logging.info("placing {} sl-order current time {}".format(direction,datetime.now().time()))
-    trigger_price=price
+    trigger_price=price*0.9875
+    trigger_price=round(trigger_price,2)
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
@@ -342,16 +343,6 @@ def place_order_time(time_hour,time_minute):
                 if(PE_ATM_sell_status==False): PE_limit_buy_status=True
                 if(CE_ATM_sell_status==False): CE_limit_buy_status=True
 
-                if(PE_limit_buy_status==False):
-                    if(order_status(PE_buy_id,"COMPLETE")):
-                        logging.info("order complete")
-                        PE_limit_buy_status=True
-                        
-                if(CE_limit_buy_status==False):
-                    if(order_status(CE_buy_id,"COMPLETE")):
-                        logging.info("order complete")
-                        CE_limit_buy_status=True
-
                 limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
                 limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
                 limit_PE=round(limit_PE,2)
@@ -367,50 +358,6 @@ def place_order_time(time_hour,time_minute):
                     if(CE_OTM_buy_order): CE_OTM_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
                     
                     break
-
-                elif(PE_limit_buy_status and CE_limit_buy_status):
-                    if(no_order): 
-                        logging.info("no order possible")
-                        continue
-
-                    # globals()["total_orders"]=globals()["total_orders"]+1
-                    total_orders=total_orders+1
-                    logging.info("total_orders: {}".format(total_orders))
-
-                    if(total_orders>2 or is_current_time(13,00)): 
-                        logging.info("total orders exceeded or the time is 1:00 pm")
-                        no_order=True
-                        continue
-
-                    logging.info("limit buy orders completed, again placing the sell orders....")
-
-                    token_ltp = get_strike_price(temp,nearest_range)
-                    SP=int(token_ltp)
-                    logging.info("SP: {}".format(SP))
-                    tradingSym_PE=symbol+str(SP)+"PE"
-                    tradingSym_CE=symbol+str(SP)+"CE"
-
-                    PE_ATM_sell_status=False
-                    CE_ATM_sell_status=False
-
-                    PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                    if(PE_ATM_sell_order):
-                        time.sleep(1)
-                        PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                        PE_ATM_sell_status=True
-                        limit_PE=PE_LTP*(1+stoploss)
-                        limit_PE=round(limit_PE,2)
-                        PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_PE)
-
-                    CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                    if(CE_ATM_sell_order):
-                        time.sleep(1)
-                        CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-                        CE_ATM_sell_status=True
-                        limit_CE=CE_LTP*(1+stoploss)
-                        limit_CE=round(limit_CE,2)
-                        CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_CE)
-                    
 
                 else:
                     place_PE_limit_order=place_limit_order(cur_PE_price,PE_LTP)
@@ -435,6 +382,53 @@ def place_order_time(time_hour,time_minute):
                                 CE_LTP=cur_CE_price
                             else: logging.info("order not cancelled")
                         else: CE_limit_buy_status=True
+
+                if(PE_limit_buy_status and CE_limit_buy_status):
+                    if(no_order): 
+                        logging.info("no order possible")
+                        continue
+
+                    # globals()["total_orders"]=globals()["total_orders"]+1
+                    total_orders=total_orders+1
+                    logging.info("total_orders: {}".format(total_orders))
+
+                    if(total_orders>2 or is_current_time(13,00)): 
+                        logging.info("total orders exceeded or the time is 1:00 pm")
+                        no_order=True
+                        continue
+
+                    logging.info("limit buy orders completed, again placing the sell orders....")
+
+                    token_ltp = get_strike_price(temp,nearest_range)
+                    SP=int(token_ltp)
+                    logging.info("SP: {}".format(SP))
+                    tradingSym_PE=symbol+str(SP)+"PE"
+                    tradingSym_CE=symbol+str(SP)+"CE"
+
+                    PE_ATM_sell_status=False
+                    CE_ATM_sell_status=False
+
+                    PE_limit_buy_status=False
+                    CE_limit_buy_status=False
+
+                    PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+                    if(PE_ATM_sell_order):
+                        time.sleep(1)
+                        PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                        PE_ATM_sell_status=True
+                        limit_PE=PE_LTP*(1+stoploss)
+                        limit_PE=round(limit_PE,2)
+                        PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_PE)
+
+                    CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+                    if(CE_ATM_sell_order):
+                        time.sleep(1)
+                        CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+                        CE_ATM_sell_status=True
+                        limit_CE=CE_LTP*(1+stoploss)
+                        limit_CE=round(limit_CE,2)
+                        CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_CE)
+                    
                             
                 time.sleep(1)
                     
