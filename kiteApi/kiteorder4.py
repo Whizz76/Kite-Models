@@ -318,7 +318,7 @@ def place_order_time(time_hour,time_minute):
                     PE_ATM_sell_status=True
                     limit_PE=PE_LTP*(1+stoploss)
                     limit_PE=round(limit_PE,2)
-                    PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_PE)
+                    PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
             
 
                 CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
@@ -328,7 +328,7 @@ def place_order_time(time_hour,time_minute):
                     CE_ATM_sell_status=True
                     limit_CE=CE_LTP*(1+stoploss)
                     limit_CE=round(limit_CE,2)
-                    CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_CE)
+                    CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
     
             # A paramter ti check if the stoploss order has been executed or not
             PE_limit_buy_status=False
@@ -408,17 +408,15 @@ def place_order_time(time_hour,time_minute):
                     PE_ATM_sell_status=False
                     CE_ATM_sell_status=False
 
-                    PE_limit_buy_status=False
-                    CE_limit_buy_status=False
-
                     PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
                     if(PE_ATM_sell_order):
                         time.sleep(1)
                         PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                         PE_ATM_sell_status=True
                         limit_PE=PE_LTP*(1+stoploss)
+                        PE_limit_buy_status=False
                         limit_PE=round(limit_PE,2)
-                        PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_PE)
+                        PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
 
                     CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
                     if(CE_ATM_sell_order):
@@ -427,7 +425,8 @@ def place_order_time(time_hour,time_minute):
                         CE_ATM_sell_status=True
                         limit_CE=CE_LTP*(1+stoploss)
                         limit_CE=round(limit_CE,2)
-                        CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_LIMIT,kite.PRODUCT_MIS,quantity,limit_CE)
+                        CE_limit_buy_status=False
+                        CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
                     
                             
                 time.sleep(1)
