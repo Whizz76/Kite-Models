@@ -9,91 +9,22 @@ import json
 import requests
 
 logging.basicConfig(level=logging.DEBUG)
-logging.info("Executing kiteorder3.py")
+logging.info("Executing testKite.py")
 
 api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
-# get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
-# data = kite.generate_session("h3PyhDEbw3N5yO7X9WNclOcPpKa6tSjD",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
-# logging.info(data)
-
-# Get the access token from the above response and store it in a variable
-access_token = "dxfHFTxKSKTGgTro49yv5fSX5ddNfqjI"
+# access_token = "3UUeC4Z2VvtDykXT6RsbSpc7X7zjpkFc"
 kite.set_access_token(access_token)
 
 net = kite.margins()["equity"]["net"]
 logging.info("net: {}".format(net))
+stoploss=0.002
 
-# Initializing the input parameters
-# -----------------------------------------------------------------------
-
-input_df=pd.read_csv("input.csv")
-
-entry_time_hour=9
-entry_time_min=40
-
-exit_time_hour=15
-exit_time_min=15
-
-current_weekday=datetime.now().weekday()
-input_values=input_df.loc[current_weekday]
-
-entry_time_hour=int(input_values["entry_time"][0:2])
-entry_time_min=int(input_values["entry_time"][-2:])
-
-exit_time_hour=int(input_values["exit_time"][0:2])
-exit_time_min=int(input_values["exit_time"][-2:])
-
-stoploss=float(input_values["stoploss"])
-lot_size=int(input_values["quantity"])
-
-symbol=str(input_values["instrument_token"]).upper()
-sym=str(input_values["trading_symbol"]).upper()
-
-is_last_week=int(input_values["last_week"])
-nearest_range=int(input_values["nearest_range"])
-
-exchange1=str(input_values["exchange"]).upper()
-exchange2="NFO"
-if(exchange1=="BSE"): exchange2="BFO"
-
-margin_range=int(input_values["margin_range"])
-
-# logging.info(entry_time_hour,entry_time_min,exit_time_hour,exit_time_min)
-# logging.info(stoploss,lot_size,symbol,trading_symbol,margin_range)
-# -----------------------------------------------------------------------
-kite_exchange=kite.EXCHANGE_NFO
+exchange1="NSE"
+exchange2="NSE"
+kite_exchange=kite.EXCHANGE_NSE
 if(exchange2=="BFO"): kite_exchange=kite.EXCHANGE_BFO
-
-temp=exchange1+":"+symbol
-
-# Get current date
-current_date = datetime.now()
-# Extract year's last two digits
-year_last_two_digits = str(current_date.year)[-2:]
-
-# Extract month index
-month_index = str(current_date.month)
-# Extract day
-day = str(current_date.day) 
-
-result_string = ""
-
-if is_last_week:
-    # If yes, add the first three letters of the current month
-    result_string=year_last_two_digits+ current_date.strftime("%b").upper()
-
-else:
-
-    if current_date.month<10:
-        result_string = year_last_two_digits + month_index.zfill(1) + day.zfill(2)
-    # Form the string in the format yymdd
-    else: result_string = year_last_two_digits + month_index.zfill(2) + day.zfill(2)
-
-
-symbol=sym+result_string
-logging.info("symbol {}".format(symbol))
 
 def is_current_time(hour, minute):
     # Get current time
@@ -211,8 +142,7 @@ def place_order(symbol,direction,exchange,o_type,product,quantity,price):
 # placing a SL-Limit order
 def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price):
     logging.info("placing {} sl-order current time {}".format(direction,datetime.now().time()))
-    trigger_price=price*0.9875
-    trigger_price=round(trigger_price,2)
+    trigger_price=price
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
@@ -239,7 +169,7 @@ def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price):
         return None
 
 # Check if the stoploss has been reached
-ratio_limit=0.9
+ratio_limit=0.999
 def place_limit_order(cur_price,previous_price):
     logging.info("cur_price: {} previous_price: {}".format(cur_price,previous_price))
     ratio=float(cur_price/previous_price)
@@ -270,36 +200,19 @@ def place_order_time(time_hour,time_minute):
 
     if(placeOrder):
 
-        token_ltp = get_strike_price(temp,nearest_range)
-        SP=int(token_ltp)
-        logging.info("SP: {}".format(SP))
-        
-        CE_price=SP
-        PE_price=SP
-
-        tradingSym_PE=symbol+str(PE_price)+"PE"
-        tradingSym_CE=symbol+str(CE_price)+"CE"
+        tradingSym_PE="DEVYANI"
+        tradingSym_CE="DEVYANI"
 
         logging.info("PE_sym {}".format(tradingSym_PE))
         logging.info("CE_sym {}".format(tradingSym_CE))
 
-        CE_price=SP+margin_range
-        PE_price=SP-margin_range
-
-        tradingSym_PE_margin=symbol+str(PE_price)+"PE"
-        tradingSym_CE_margin=symbol+str(CE_price)+"CE"
-
-        sell_sym=[tradingSym_PE,tradingSym_CE]
-        buy_sym=[tradingSym_PE_margin,tradingSym_CE_margin]
-        num_lots=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
+        num_lots=1
         no_order=False
 
 
         if(num_lots!=0):
-            quantity=lot_size*num_lots
-
-            PE_OTM_buy_order=place_order(tradingSym_PE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-            CE_OTM_buy_order=place_order(tradingSym_CE_margin,"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+            
+            quantity=1
 
             PE_LTP=None
             CE_LTP=None
@@ -310,26 +223,32 @@ def place_order_time(time_hour,time_minute):
             PE_ATM_sell_status=False
             CE_ATM_sell_status=False
 
-            if(PE_OTM_buy_order and CE_OTM_buy_order): 
-                PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                if(PE_ATM_sell_order): 
-                    time.sleep(1)
-                    PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
-                    PE_ATM_sell_status=True
-                    limit_PE=PE_LTP*(1+stoploss)
-                    limit_PE=round(limit_PE,2)
-                    PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
-            
+           
+            PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+            # PE_ATM_sell_order=True
+            if(PE_ATM_sell_order): 
+                time.sleep(1)
+                PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
+                PE_ATM_sell_status=True
+                limit_PE=PE_LTP*(1+stoploss)
+                limit_PE=round(limit_PE,1)
+                # limit_PE=min(limit_PE,170)
+                logging.info("limit_PE: {}".format(limit_PE))
+                PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
+        
 
-                CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                if(CE_ATM_sell_order): 
-                    time.sleep(1)
-                    CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
-                    CE_ATM_sell_status=True
-                    limit_CE=CE_LTP*(1+stoploss)
-                    limit_CE=round(limit_CE,2)
-                    CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
-    
+            CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+            # CE_ATM_sell_order=True
+            if(CE_ATM_sell_order): 
+                time.sleep(1)
+                CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
+                CE_ATM_sell_status=True
+                limit_CE=CE_LTP*(1+stoploss)
+                limit_CE=round(limit_CE,1)
+                # limit_CE=min(limit_CE,170)
+                logging.info("limit_CE: {}".format(limit_CE))
+                CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
+
             # A paramter ti check if the stoploss order has been executed or not
             PE_limit_buy_status=False
             CE_limit_buy_status=False
@@ -345,18 +264,16 @@ def place_order_time(time_hour,time_minute):
 
                 limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
                 limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
-                limit_PE=round(limit_PE,2)
-                limit_CE=round(limit_CE,2)
+                limit_PE=round(limit_PE,1)
+                limit_CE=round(limit_CE,1)
+
 
                 logging.info("cur_PE_price: {} limit_PE: {}".format(cur_PE_price,limit_PE))
                 logging.info("cur_CE_price: {} limit_CE: {}".format(cur_CE_price,limit_CE))
 
 
-                if is_current_time(exit_time_hour,exit_time_min):
+                if is_current_time(13,00):
                     logging.info("Exiting the program")
-                    if(PE_OTM_buy_order): PE_OTM_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                    if(CE_OTM_buy_order): CE_OTM_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
-                    
                     break
 
                 else:
@@ -388,7 +305,6 @@ def place_order_time(time_hour,time_minute):
                         logging.info("no order possible")
                         continue
 
-                    # globals()["total_orders"]=globals()["total_orders"]+1
                     total_orders=total_orders+1
                     logging.info("total_orders: {}".format(total_orders))
 
@@ -398,24 +314,24 @@ def place_order_time(time_hour,time_minute):
                         continue
 
                     logging.info("limit buy orders completed, again placing the sell orders....")
-
-                    token_ltp = get_strike_price(temp,nearest_range)
-                    SP=int(token_ltp)
-                    logging.info("SP: {}".format(SP))
-                    tradingSym_PE=symbol+str(SP)+"PE"
-                    tradingSym_CE=symbol+str(SP)+"CE"
+                    
+                    tradingSym_PE="DEVYANI"
+                    tradingSym_CE="DEVYANI"
 
                     PE_ATM_sell_status=False
                     CE_ATM_sell_status=False
 
+                    
+                    
                     PE_ATM_sell_order=place_order(tradingSym_PE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
                     if(PE_ATM_sell_order):
                         time.sleep(1)
                         PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                         PE_ATM_sell_status=True
                         limit_PE=PE_LTP*(1+stoploss)
+                        limit_PE=round(limit_PE,1)
+                        # limit_PE=min(limit_PE,170)
                         PE_limit_buy_status=False
-                        limit_PE=round(limit_PE,2)
                         PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
 
                     CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
@@ -424,7 +340,8 @@ def place_order_time(time_hour,time_minute):
                         CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
                         CE_ATM_sell_status=True
                         limit_CE=CE_LTP*(1+stoploss)
-                        limit_CE=round(limit_CE,2)
+                        limit_CE=round(limit_CE,1)
+                        # limit_CE=min(limit_CE,170)
                         CE_limit_buy_status=False
                         CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
                     
@@ -436,7 +353,7 @@ def place_order_time(time_hour,time_minute):
         logging.info("kite orders {}".format(kite.orders()))
         
 def main():
-    place_order_time(entry_time_hour,entry_time_min)
+    place_order_time(9,00)
 
 if __name__=="__main__":
     main()

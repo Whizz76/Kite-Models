@@ -108,7 +108,7 @@ def is_current_time(hour, minute):
 def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
-    margin_percentage=0.7
+    margin_percentage=0.3
     order_param_basket=[]
     for sym in sell_sym:
         order_param_basket.append(
@@ -210,9 +210,11 @@ def place_order(symbol,direction,exchange,o_type,product,quantity,price):
 
 # placing a SL-Limit order
 def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price):
+    price=round(price,1)
     logging.info("placing {} sl-order current time {}".format(direction,datetime.now().time()))
     trigger_price=price*0.9875
-    trigger_price=round(trigger_price,2)
+    trigger_price=round(trigger_price,1)
+    logging.info("trigger_price: {} limit_price {}".format(trigger_price,price))
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
@@ -292,6 +294,9 @@ def place_order_time(time_hour,time_minute):
         sell_sym=[tradingSym_PE,tradingSym_CE]
         buy_sym=[tradingSym_PE_margin,tradingSym_CE_margin]
         num_lots=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
+        # Delete it later
+        if(num_lots==0 or num_lots>1): num_lots=1
+        logging.info("num_lots for order: {}".format(num_lots))
         no_order=False
 
 
@@ -317,7 +322,7 @@ def place_order_time(time_hour,time_minute):
                     PE_LTP=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                     PE_ATM_sell_status=True
                     limit_PE=PE_LTP*(1+stoploss)
-                    limit_PE=round(limit_PE,2)
+                    limit_PE=round(limit_PE,1)
                     PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
             
 
@@ -327,7 +332,7 @@ def place_order_time(time_hour,time_minute):
                     CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
                     CE_ATM_sell_status=True
                     limit_CE=CE_LTP*(1+stoploss)
-                    limit_CE=round(limit_CE,2)
+                    limit_CE=round(limit_CE,1)
                     CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
     
             # A paramter ti check if the stoploss order has been executed or not
@@ -345,8 +350,8 @@ def place_order_time(time_hour,time_minute):
 
                 limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
                 limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
-                limit_PE=round(limit_PE,2)
-                limit_CE=round(limit_CE,2)
+                limit_PE=round(limit_PE,1)
+                limit_CE=round(limit_CE,1)
 
                 logging.info("cur_PE_price: {} limit_PE: {}".format(cur_PE_price,limit_PE))
                 logging.info("cur_CE_price: {} limit_CE: {}".format(cur_CE_price,limit_CE))
@@ -364,23 +369,35 @@ def place_order_time(time_hour,time_minute):
                     place_CE_limit_order=place_limit_order(cur_CE_price,CE_LTP)
                     
                     if(place_PE_limit_order and PE_limit_buy_status==False): 
-                        if(order_status(PE_buy_id,"OPEN")): 
+                        if(PE_buy_id and order_status(PE_buy_id,"OPEN")): 
                             cancelled_PE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(PE_buy_id))
-                            if(order_status(PE_buy_id,"CANCELLED")):
-                                logging.info("order cancelled {}".format(cancelled_PE_id))
-                                PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
-                                PE_LTP=cur_PE_price
-                            else: logging.info("order not cancelled")
+                            # time.sleep(1)
+                            # if(order_status(PE_buy_id,"CANCELLED")):
+                            logging.info("order cancelled {}".format(cancelled_PE_id))
+                            PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
+                            PE_LTP=cur_PE_price
+                            # else: logging.info("order not cancelled")
+
+                        elif(PE_buy_id==None): 
+                            PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
+                            PE_LTP=cur_PE_price
+
                         else: PE_limit_buy_status=True
 
                     if(place_CE_limit_order and CE_limit_buy_status==False): 
-                        if(order_status(CE_buy_id,"OPEN")): 
+                        if(CE_buy_id and order_status(CE_buy_id,"OPEN")): 
                             cancelled_CE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(CE_buy_id))
-                            if(order_status(CE_buy_id,"CANCELLED")):
-                                logging.info("order cancelled {}".format(cancelled_CE_id))
-                                CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
-                                CE_LTP=cur_CE_price
-                            else: logging.info("order not cancelled")
+                            # time.sleep(1)
+                            # if(order_status(CE_buy_id,"CANCELLED")):
+                            logging.info("order cancelled {}".format(cancelled_CE_id))
+                            CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
+                            CE_LTP=cur_CE_price
+                            # else: logging.info("order not cancelled")
+
+                        elif(CE_buy_id==None):
+                            CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
+                            CE_LTP=cur_CE_price
+
                         else: CE_limit_buy_status=True
 
                 if(PE_limit_buy_status and CE_limit_buy_status):
@@ -392,7 +409,7 @@ def place_order_time(time_hour,time_minute):
                     total_orders=total_orders+1
                     logging.info("total_orders: {}".format(total_orders))
 
-                    if(total_orders>2 or is_current_time(13,00)): 
+                    if(total_orders>1 or is_current_time(13,00)): 
                         logging.info("total orders exceeded or the time is 1:00 pm")
                         no_order=True
                         continue
@@ -415,7 +432,7 @@ def place_order_time(time_hour,time_minute):
                         PE_ATM_sell_status=True
                         limit_PE=PE_LTP*(1+stoploss)
                         PE_limit_buy_status=False
-                        limit_PE=round(limit_PE,2)
+                        limit_PE=round(limit_PE,1)
                         PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
 
                     CE_ATM_sell_order=place_order(tradingSym_CE,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
@@ -424,7 +441,7 @@ def place_order_time(time_hour,time_minute):
                         CE_LTP=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
                         CE_ATM_sell_status=True
                         limit_CE=CE_LTP*(1+stoploss)
-                        limit_CE=round(limit_CE,2)
+                        limit_CE=round(limit_CE,1)
                         CE_limit_buy_status=False
                         CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
                     
