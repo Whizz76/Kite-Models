@@ -370,12 +370,14 @@ def place_order_time(time_hour,time_minute):
                     
                     if(place_PE_limit_order and PE_limit_buy_status==False): 
                         if(PE_buy_id and order_status(PE_buy_id,"OPEN")): 
-                            cancelled_PE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(PE_buy_id))
-                            # time.sleep(1)
-                            # if(order_status(PE_buy_id,"CANCELLED")):
-                            logging.info("order cancelled {}".format(cancelled_PE_id))
+                            temp_id=PE_buy_id
                             PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
                             PE_LTP=cur_PE_price
+                            cancelled_PE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(temp_id))
+                            # time.sleep(1)
+                            # if(order_status(PE_buy_id,"CANCELLED")):
+                            logging.info("order cancelled {} temp_id {}".format(cancelled_PE_id,temp_id))
+                            
                             # else: logging.info("order not cancelled")
 
                         elif(PE_buy_id==None): 
@@ -385,13 +387,14 @@ def place_order_time(time_hour,time_minute):
                         else: PE_limit_buy_status=True
 
                     if(place_CE_limit_order and CE_limit_buy_status==False): 
-                        if(CE_buy_id and order_status(CE_buy_id,"OPEN")): 
-                            cancelled_CE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(CE_buy_id))
-                            # time.sleep(1)
-                            # if(order_status(CE_buy_id,"CANCELLED")):
-                            logging.info("order cancelled {}".format(cancelled_CE_id))
+                        if(CE_buy_id and order_status(CE_buy_id,"OPEN")):
+                            temp_id=CE_buy_id 
                             CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
                             CE_LTP=cur_CE_price
+                            cancelled_CE_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(temp_id))
+                            # time.sleep(1)
+                            # if(order_status(CE_buy_id,"CANCELLED")):
+                            logging.info("order cancelled {} temp_id {}".format(cancelled_CE_id,temp_id))
                             # else: logging.info("order not cancelled")
 
                         elif(CE_buy_id==None):
