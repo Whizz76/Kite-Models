@@ -344,9 +344,9 @@ def place_order_time(time_hour,time_minute):
                 cur_PE_price=kite.quote(exchange2+":"+tradingSym_PE)[exchange2+":"+tradingSym_PE]['last_price']
                 cur_CE_price=kite.quote(exchange2+":"+tradingSym_CE)[exchange2+":"+tradingSym_CE]['last_price']
 
-                # If sell order could not be executed then no need to place the buy order
-                if(PE_ATM_sell_status==False): PE_limit_buy_status=True
-                if(CE_ATM_sell_status==False): CE_limit_buy_status=True
+                # If sell order could not be executed or SL is hit then no need to place the buy order
+                if(PE_ATM_sell_status==False or order_status(PE_buy_id,"COMPLETE")): PE_limit_buy_status=True
+                if(CE_ATM_sell_status==False or order_status(CE_buy_id,"COMPLETE")): CE_limit_buy_status=True
 
                 limit_PE=min_val(cur_PE_price,stoploss,limit_PE)
                 limit_CE=min_val(cur_CE_price,stoploss,limit_CE)
