@@ -15,7 +15,7 @@ api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
 # access_token = "3UUeC4Z2VvtDykXT6RsbSpc7X7zjpkFc"
-kite.set_access_token(access_token)
+# kite.set_access_token(access_token)
 
 net = kite.margins()["equity"]["net"]
 logging.info("net: {}".format(net))
