@@ -230,6 +230,19 @@ def limit_order(test_weekday):
     if(placeOrder):
         print(cur_time)
         SP=get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
+
+        # ----------------------------WHILE LOOPS FOR DATA ABSENCE---------------
+
+        while(SP==None and is_current_time(entry_time_hour,entry_time_min,cur_time)==False):
+            cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
+            logging.info("Time updated to as the strike price not found: {}".format(cur_time))
+            SP=get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
+
+        # -----------------------------------------------------------------------
+        if(SP==None):
+            logging.info("Strike price not found")
+            return "Strike price not found"
+        
         logging.info("SP: {}".format(SP))
         
         CE_price=SP
@@ -258,6 +271,9 @@ def limit_order(test_weekday):
 
             # keep incrementing the time until the initial orders are executed
             initial_present=False
+
+            # ----------------------------WHILE LOOPS FOR DATA ABSENCE---------------
+
             while (PE_OTM_buy_order==None or CE_OTM_buy_order==None or PE_ATM_sell_order==None 
                     or CE_ATM_sell_order==None):
                 
@@ -310,6 +326,8 @@ def limit_order(test_weekday):
                 if(initial_present==False):    
                     cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
                     logging.info("Time updated to as the order not executed: {}".format(cur_time))
+
+            # ------------------------------------------------------------------------
     
             # A paramter ti check if the stoploss order has been executed or not
             PE_limit_buy_status=False
@@ -426,10 +444,23 @@ def limit_order(test_weekday):
                     logging.info("limit buy orders completed, again placing the sell orders....")
 
                     token_ltp = get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
-                    SP=int(token_ltp)
-                    if(SP==10000): 
+
+                    # ----------------------------WHILE LOOPS FOR DATA ABSENCE---------------
+
+                    while (token_ltp==None and is_current_time(entry_time_hour,entry_time_min,cur_time)==False):
+                        
+                        cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
+                        logging.info("Time updated to as the strike price not found: {}".format(cur_time))
+                        token_ltp = get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
+
+                    # -----------------------------------------------------------------------
+
+                    
+                    if(token_ltp==None): 
                         logging.info("Strike price not found.. 404")
                         continue
+
+                    SP=int(token_ltp)
                     logging.info("SP: {}".format(SP))
                     tradingSym_PE=symbol+str(SP)+"PE"
                     tradingSym_CE=symbol+str(SP)+"CE"
