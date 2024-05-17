@@ -10,7 +10,6 @@ import csv
 import os
 
 logging.basicConfig(level=logging.DEBUG)
-logging.info("Executing test6.py")
 
 test_input=[["2024-04-15","BANKEX"],["2024-04-16","FINNIFTY"],["2024-04-16","BNF"],["2024-04-18","NIFTY50"],["2024-04-19","SENSEX"]]
 
@@ -146,7 +145,10 @@ def get_token_symbol(symbol,test_date):
     test_date=test_year+test_month+test_day
     return symbol+test_date
 
-def limit_order(test_date,folder_path,test_weekday):
+def limit_order(test_weekday):
+
+    test_date=test_input[test_weekday][0]
+    folder_path=test_input[test_weekday][1]
 
     folder_path1 = os.path.join(folder_path, test_date)
     # Check if the folder already exists
@@ -474,46 +476,39 @@ def limit_order(test_date,folder_path,test_weekday):
             for key in test_data.keys():
                 data={"test_date":test_date,"instrument_token":key,"net":test_data[key]}
                 update_csv_with_json(filename,data)
-                
+            logging.info("Data updated in the csv file")
 
 
 if __name__=="__main__":
-
-    num_days=10
+    num=5
     it=0
-    limit_order(test_input[1][0],test_input[1][1],1)
-    # while(it<=num_days):
+    logging.info("Executing test6.py")
+    while(it<=num):
+        p1=multiprocessing.Process(target=limit_order,args=(0,))
+        p2=multiprocessing.Process(target=limit_order,args=(1,))
+        p3=multiprocessing.Process(target=limit_order,args=(2,))
+        p4=multiprocessing.Process(target=limit_order,args=(3,))
+        p5=multiprocessing.Process(target=limit_order,args=(4,))
+        
 
-    #     p1=multiprocessing.process(target=limit_order)
-    #     p2=multiprocessing.process(target=limit_order,args=(test_input[1][0],test_input[1][1],1,))
-    #     p3=multiprocessing.process(target=limit_order,args=(test_input[2][0],test_input[2][1],2,))
-    #     p4=multiprocessing.process(target=limit_order,args=(test_input[3][0],test_input[3][1],3,))
-    #     p5=multiprocessing.process(target=limit_order,args=(test_input[4][0],test_input[4][1],4,))
+        p1.start()
+        p2.start()
+        p3.start()
+        p4.start()
+        p5.start()
 
-    #     print("ID of process p1: {}".format(p1.pid)) 
-    #     print("ID of process p2: {}".format(p2.pid)) 
-    #     print("ID of process p1: {}".format(p3.pid)) 
-    #     print("ID of process p2: {}".format(p4.pid)) 
-    #     print("ID of process p1: {}".format(p5.pid)) 
+        logging.info("Process started with pid %s",p1.pid)
+        logging.info("Process started with pid %s",p2.pid)
+        logging.info("Process started with pid %s",p3.pid)
+        logging.info("Process started with pid %s",p4.pid)
+        logging.info("Process started with pid %s",p5.pid)
 
-    #     p1.start()
-    #     p2.start()
-    #     p3.start()
-    #     p4.start()
-    #     p5.start()
+        p1.join()
+        p2.join()
+        p3.join()
+        p4.join()
+        p5.join()
+        logging.info("Process joined")
 
-    #     p1.join()
-    #     p2.join()
-    #     p3.join()
-    #     p4.join()
-    #     p5.join()
-
-    #     # Updating the date for each input by 7 days to get the day for the next week
-    #     for input in test_input:
-    #         input[0]=(datetime.datetime.strptime(input[0], "%Y-%m-%d") + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
-
-
-    #     it+=5
-
-
-    logging.info("All processes completed")
+        print("iteration ",it)
+        it+=5
