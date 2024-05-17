@@ -514,7 +514,7 @@ if __name__=="__main__":
     num=5
     it=0
     logging.info("Executing test6.py")
-    while(it<=num):
+    while(it<num):
         p1=multiprocessing.Process(target=limit_order,args=(0,))
         p2=multiprocessing.Process(target=limit_order,args=(1,))
         p3=multiprocessing.Process(target=limit_order,args=(2,))
