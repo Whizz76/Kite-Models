@@ -143,7 +143,7 @@ def get_token_symbol(symbol,test_date):
     if(test_month[0]=='0'): test_month=test_month[1]
     test_day=test_date[2]
     test_date=test_year+test_month+test_day
-    if(symbol[0:5]=="NIFTY"): return symbol+"_"+test_date
+    if("50" in symbol): return symbol+"_"+test_date
     return symbol+test_date
 
 def limit_order(test_weekday):
