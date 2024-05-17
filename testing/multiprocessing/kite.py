@@ -322,13 +322,25 @@ def limit_order(test_weekday):
             
             while True:
 
+                if is_current_time(exit_time_hour,exit_time_min,cur_time) or ((PE_limit_buy_status and CE_limit_buy_status) and total_orders>2):
+                    logging.info("Exiting the program")
+                    if(PE_OTM_buy_order): 
+                        PE_OTM_sell_order=sell(tradingSym_PE_margin,folder_path)
+                        if(PE_OTM_sell_order): test_data[str(tradingSym_PE_margin)]+=get_ltp(tradingSym_PE_margin,test_date,cur_time,folder_path)
+
+                    if(CE_OTM_buy_order): 
+                        CE_OTM_sell_order=sell(tradingSym_CE_margin,folder_path)
+                        if(CE_OTM_sell_order): test_data[str(tradingSym_CE_margin)]+=get_ltp(tradingSym_CE_margin,test_date,cur_time,folder_path)
+                    
+                    break
+
                 cur_PE_price=get_ltp(tradingSym_PE,test_date,cur_time,folder_path)
                 cur_CE_price=get_ltp(tradingSym_CE,test_date,cur_time,folder_path)
 
                 if(cur_PE_price==None or cur_CE_price==None):
                     logging.info("Data absent")
                     cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
-                    logging.info("Time updated to: {}".format(cur_time))
+                    logging.info("Since data absent Time updated to: {}".format(cur_time))
                     continue
 
 
@@ -364,51 +376,39 @@ def limit_order(test_weekday):
                 if(CE_triggered==False): CE_triggered=is_triggered(CE_price,cur_CE_price)
                     
 
-                if is_current_time(exit_time_hour,exit_time_min,cur_time) or ((PE_limit_buy_status and CE_limit_buy_status) and total_orders>2):
-                    logging.info("Exiting the program")
-                    if(PE_OTM_buy_order): 
-                        PE_OTM_sell_order=sell(tradingSym_PE_margin,folder_path)
-                        if(PE_OTM_sell_order): test_data[str(tradingSym_PE_margin)]+=get_ltp(tradingSym_PE_margin,test_date,cur_time,folder_path)
-
-                    if(CE_OTM_buy_order): 
-                        CE_OTM_sell_order=sell(tradingSym_CE_margin,folder_path)
-                        if(CE_OTM_sell_order): test_data[str(tradingSym_CE_margin)]+=get_ltp(tradingSym_CE_margin,test_date,cur_time,folder_path)
+              
+                place_PE_limit_order=place_limit_order(cur_PE_price,PE_LTP)
+                place_CE_limit_order=place_limit_order(cur_CE_price,CE_LTP)
+                
+                if(place_PE_limit_order and PE_limit_buy_status==False): 
+                    if(PE_after_trigger): PE_limit_buy_status=True
                     
-                    break
+                    elif(PE_buy_id and PE_triggered==False): 
+                        temp_id=PE_buy_id
+                        PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
+                        PE_LTP=cur_PE_price
+                        PE_price=limit_PE
+                        logging.info("order cancelled temp_id {}".format(temp_id))
 
-                else:
-                    place_PE_limit_order=place_limit_order(cur_PE_price,PE_LTP)
-                    place_CE_limit_order=place_limit_order(cur_CE_price,CE_LTP)
-                    
-                    if(place_PE_limit_order and PE_limit_buy_status==False): 
-                        if(PE_after_trigger): PE_limit_buy_status=True
-                        
-                        elif(PE_buy_id and PE_triggered==False): 
-                            temp_id=PE_buy_id
-                            PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
-                            PE_LTP=cur_PE_price
-                            PE_price=limit_PE
-                            logging.info("order cancelled temp_id {}".format(temp_id))
+                    elif(PE_buy_id==None): 
+                        PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
+                        PE_LTP=cur_PE_price
+                        PE_price=limit_PE
 
-                        elif(PE_buy_id==None): 
-                            PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
-                            PE_LTP=cur_PE_price
-                            PE_price=limit_PE
+                if(place_CE_limit_order and CE_limit_buy_status==False): 
+                    if(CE_after_trigger): CE_limit_buy_status=True
 
-                    if(place_CE_limit_order and CE_limit_buy_status==False): 
-                        if(CE_after_trigger): CE_limit_buy_status=True
+                    elif(CE_buy_id and CE_triggered==False):
+                        temp_id=CE_buy_id 
+                        CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
+                        CE_LTP=cur_CE_price
+                        logging.info("order cancelled temp_id {}".format(temp_id))
+                        CE_price=limit_CE
 
-                        elif(CE_buy_id and CE_triggered==False):
-                            temp_id=CE_buy_id 
-                            CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
-                            CE_LTP=cur_CE_price
-                            logging.info("order cancelled temp_id {}".format(temp_id))
-                            CE_price=limit_CE
-
-                        elif(CE_buy_id==None):
-                            CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
-                            CE_LTP=cur_CE_price
-                            CE_price=limit_CE
+                    elif(CE_buy_id==None):
+                        CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
+                        CE_LTP=cur_CE_price
+                        CE_price=limit_CE
 
                 if(PE_limit_buy_status and CE_limit_buy_status):
                     if(no_order): 
