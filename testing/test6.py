@@ -3,8 +3,8 @@ from kiteconnect import KiteConnect
 import kiteconnect.exceptions
 from kiteconnect import KiteTicker
 import pandas as pd
-from datetime import datetime, timedelta
-import time as time
+import datetime
+import time
 import json
 import requests
 
@@ -15,9 +15,9 @@ print("started...")
 api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 test_data={}
-folder_path="SENSEX"
-token="SENSEX"
-tokenSymbol="SENSEX22042024"
+folder_path="BNF"
+token="BANKNIFTY"
+tokenSymbol="NIFTY BANK24416"
 # get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
 # data = kite.generate_session("h3PyhDEbw3N5yO7X9WNclOcPpKa6tSjD",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
 # logging.info(data)
@@ -27,9 +27,9 @@ tokenSymbol="SENSEX22042024"
 
 input_df=pd.read_csv("input.csv")
 
-expiry_date="2024-04-26"
-test_date="2024-04-22"
-test_weekday=3
+expiry_date="2024-04-16"
+test_date="2024-04-16"
+test_weekday=2
 
 entry_time_hour=9
 entry_time_min=35
@@ -70,7 +70,7 @@ if(exchange2=="BFO"): kite_exchange=kite.EXCHANGE_BFO
 temp=exchange1+":"+symbol
 
 # Get current date
-current_date = datetime.now()
+current_date = datetime.datetime.strptime(test_date, "%Y-%m-%d")
 # Extract year's last two digits
 year_last_two_digits = str(current_date.year)[-2:]
 
@@ -96,7 +96,7 @@ else:
 symbol=sym+result_string
 logging.info("symbol {}".format(symbol))
 
-cur_time=datetime.time(entry_time_hour,entry_time_min,entry_time_sec)
+cur_time=datetime.time(9,35,0)
 
 def update_time():
     # Update time by 1 second
@@ -118,7 +118,7 @@ def get_ltp(trading_symbol):
     if(not BNF_file.empty): 
         BNF_file=BNF_file.values[0]
         return float(BNF_file[2])
-    else: return 0
+    else: return 10000
     
 def place_order(tradingSym,transaction_type,exchange,order_type,product,quantity,price):
     BNF_file=pd.read_csv("./"+folder_path+"/"+expiry_date+"/"+tradingSym+".csv")
@@ -140,6 +140,7 @@ def sell(tradingSym):
 # Check if the stoploss has been reached
 ratio_limit=0.9
 def place_limit_order(cur_price,previous_price):
+    if(cur_price==None or previous_price==None): return False
     logging.info("cur_price: {} previous_price: {}".format(cur_price,previous_price))
     ratio=float(cur_price/previous_price)
     logging.info("ratio: {}".format(ratio))
@@ -172,8 +173,10 @@ def get_strike_price(token,range):
     else: return ltp_rounded_1
 
 def is_triggered(price,cur_price):
+    if(cur_price>=10000): return False
     trigger_price=price*0.9875
     trigger_price=round(trigger_price,1)
+    if(cur_price>=trigger_price): logging.info("Price triggered with trigger_price {} cur_price {}".format(trigger_price,cur_price))
     return cur_price>=trigger_price
 
 def place_order_time(time_hour,time_minute):
@@ -224,8 +227,8 @@ def place_order_time(time_hour,time_minute):
             CE_LTP=None
             limit_PE=None
             limit_CE=None
-            PE_price=0
-            CE_price=0
+            PE_price=10000
+            CE_price=10000
             
             # Check if the sell order have been executed or not
             PE_ATM_sell_status=False
@@ -286,27 +289,27 @@ def place_order_time(time_hour,time_minute):
                     if(PE_triggered and cur_PE_price<=PE_price):
                         PE_after_trigger=True
                         test_data[str(tradingSym_PE)]-=cur_PE_price
-                        logging.info("Price triggered for {} limit_price {} cur_price".format(tradingSym_PE,PE_price,cur_PE_price))
+                        logging.info("Price triggered for {} limit_price {} cur_price {}".format(tradingSym_PE,PE_price,cur_PE_price))
                 
                 if(CE_after_trigger==False):
                     if(CE_triggered and cur_CE_price<=CE_price):
                         CE_after_trigger=True
                         test_data[str(tradingSym_CE)]-=cur_CE_price
-                        logging.info("Price triggered for {} limit_price {} cur_price".format(tradingSym_CE,CE_price,cur_CE_price))
+                        logging.info("Price triggered for {} limit_price {} cur_price {}".format(tradingSym_CE,CE_price,cur_CE_price))
                         
 
                 if(PE_triggered==False): PE_triggered=is_triggered(PE_price,cur_PE_price)
                 if(CE_triggered==False): CE_triggered=is_triggered(CE_price,cur_CE_price)
                     
 
-                if is_current_time(exit_time_hour,exit_time_min):
+                if is_current_time(exit_time_hour,exit_time_min) or ((PE_limit_buy_status and CE_limit_buy_status) and total_orders>2):
                     logging.info("Exiting the program")
                     if(PE_OTM_buy_order): 
-                        PE_OTM_sell_order=place_order(tradingSym_PE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+                        PE_OTM_sell_order=sell(tradingSym_PE_margin)
                         if(PE_OTM_sell_order): test_data[str(tradingSym_PE_margin)]+=get_ltp(tradingSym_PE_margin)
 
                     if(CE_OTM_buy_order): 
-                        CE_OTM_sell_order=place_order(tradingSym_CE_margin,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity,0)
+                        CE_OTM_sell_order=sell(tradingSym_CE_margin)
                         if(CE_OTM_sell_order): test_data[str(tradingSym_CE_margin)]+=get_ltp(tradingSym_CE_margin)
                     
                     break
@@ -362,6 +365,9 @@ def place_order_time(time_hour,time_minute):
 
                     token_ltp = get_strike_price(tokenSymbol,nearest_range)
                     SP=int(token_ltp)
+                    if(SP==10000): 
+                        logging.info("Strike price not found.. 404")
+                        continue
                     logging.info("SP: {}".format(SP))
                     tradingSym_PE=symbol+str(SP)+"PE"
                     tradingSym_CE=symbol+str(SP)+"CE"
