@@ -279,7 +279,7 @@ def limit_order(test_weekday):
                     or CE_ATM_sell_order==None):
                 
                 initial_present=False
-                if(is_current_time(15,15,cur_time)): 
+                if(is_current_time(exit_time_hour,exit_time_min,cur_time)): 
                     logging.info("Data absent")
                     break
 
