@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 test_input=[["2024-04-15","BANKEX"],["2024-04-16","FINNIFTY"],["2024-04-16","BNF"],["2024-04-18","NIFTY50"],["2024-04-19","SENSEX"]]
 
-column_names=["test_date","instrument_token","net"]
+
 filename="result.csv"
 stoploss=0.6
 small_range=100
@@ -32,7 +32,7 @@ def is_current_time(hour, minute,cur_time):
     # Check if current hour and minute match the parameters
     return current_time.hour >= hour and current_time.minute >= minute
 
-def update_csv_with_json(csv_file, json_data):
+def update_csv_with_json(csv_file, json_data,column_names):
     """
     Updates the specified CSV file with the provided JSON data.
 
@@ -508,7 +508,8 @@ def limit_order(test_weekday):
     logging.info("kite_orders: for sym: {} are- {}".format(tokenSymbol,test_data))
 
     net_PL=0
-
+    column_names1=["test_date","instrument_token","net"]
+    column_names2=["test_date","Symbol","net"]
     for key in test_data.keys():
         if(key in complete_data): 
             if(complete_data[key]==False): 
@@ -517,9 +518,11 @@ def limit_order(test_weekday):
         else: continue
         net_PL+=test_data[key]
         data={"test_date":test_date,"instrument_token":key,"net":test_data[key]}
-        data1={"test_date":test_date,"net":net_PL}
-        update_csv_with_json(filename,data)
-        update_csv_with_json("net.csv",data1)
+        update_csv_with_json(filename,data,column_names1)
+        
+    if(net_PL):
+        data1={"test_date":test_date,"Symbol":tokenSymbol,"net":net_PL}
+        update_csv_with_json("net.csv",data1,column_names2)
 
     logging.info("Data updated in the csv file")
 
