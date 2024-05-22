@@ -11,7 +11,7 @@ import os
 
 logging.basicConfig(level=logging.DEBUG)
 
-test_input=[["2024-04-15","BANKEX"],["2024-04-16","FINNIFTY"],["2024-04-16","BNF"],["2024-04-18","NIFTY50"],["2024-04-19","SENSEX"]]
+test_input=[["2024-04-22","BANKEX"],["2024-04-23","FINNIFTY"],["2024-04-23","BNF"],["2024-04-25","NIFTY50"],["2024-04-26","SENSEX"]]
 
 
 filename="result.csv"
@@ -144,7 +144,7 @@ def get_token_symbol(symbol,test_date):
     return symbol+test_date
 
 def limit_order(test_weekday):
-
+    s=time.time()
     test_date=test_input[test_weekday][0]
     folder_path=test_input[test_weekday][1]
 
@@ -157,14 +157,16 @@ def limit_order(test_weekday):
     print("started... for expiry_date {}".format(test_date))
     test_data={}
     complete_data={}
+    buy_data={}
+    sell_data={}
 
     # Initializing the input parameters
     # -----------------------------------------------------------------------
     entry_time_hour=9
     entry_time_min=35
 
-    exit_time_hour=9
-    exit_time_min=36
+    exit_time_hour=15
+    exit_time_min=15
 
     input_values=input_arr[test_weekday]
 
@@ -250,69 +252,75 @@ def limit_order(test_weekday):
                 break
 
             SP=get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
+            if(SP!=None): 
+
+                logging.info("SP: {}".format(SP))
+                CE_price=SP
+                PE_price=SP
+
+                tradingSym_PE=symbol+str(PE_price)+"PE"
+                tradingSym_CE=symbol+str(CE_price)+"CE"
+
+                logging.info("PE_sym {}".format(tradingSym_PE))
+                logging.info("CE_sym {}".format(tradingSym_CE))
+
+                CE_price=SP+margin_range
+                PE_price=SP-margin_range
+
+                tradingSym_PE_margin=symbol+str(PE_price)+"PE"
+                tradingSym_CE_margin=symbol+str(CE_price)+"CE"
+
+                PE_OTM_buy_order=place_order(tradingSym_PE_margin,"buy",test_date,cur_time,folder_path)
+                CE_OTM_buy_order=place_order(tradingSym_CE_margin,"buy",test_date,cur_time,folder_path)
+                
+                # Check if the sell order have been executed or not
+                PE_ATM_sell_status=False
+                CE_ATM_sell_status=False
+
+                if(PE_OTM_buy_order and CE_OTM_buy_order): 
+                    buy_data[tradingSym_CE_margin]=CE_OTM_buy_order
+                    buy_data[tradingSym_PE_margin]=PE_OTM_buy_order
+
+                    complete_data[tradingSym_CE_margin]=1
+                    complete_data[tradingSym_PE_margin]=1
+                    test_data[str(tradingSym_PE_margin)]=-PE_OTM_buy_order
+                    test_data[str(tradingSym_CE_margin)]=-CE_OTM_buy_order
+
+                    PE_ATM_sell_order=place_order(tradingSym_PE,"sell",test_date,cur_time,folder_path)
+                    if(PE_ATM_sell_order): 
+                        sell_data[tradingSym_PE]=PE_ATM_sell_order
+                        PE_LTP=PE_ATM_sell_order
+                        complete_data[tradingSym_PE]=1
+                        PE_ATM_sell_status=True
+                        limit_PE=PE_LTP*(1+stoploss)
+                        limit_PE=round(limit_PE,1)
+                        test_data[str(tradingSym_PE)]=PE_LTP
+                        PE_price=limit_PE
+                        PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
+                
+
+                    CE_ATM_sell_order=place_order(tradingSym_CE,"sell",test_date,cur_time,folder_path)
+                    if(CE_ATM_sell_order): 
+                        sell_data[tradingSym_CE]=CE_ATM_sell_order
+                        CE_LTP=CE_ATM_sell_order
+                        complete_data[tradingSym_CE]=1
+                        CE_ATM_sell_status=True
+                        limit_CE=CE_LTP*(1+stoploss)
+                        limit_CE=round(limit_CE,1)
+                        test_data[str(tradingSym_CE)]=CE_LTP
+                        CE_price=limit_CE
+                        CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
+
+            # Updating the time
             cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
             logging.info("Time updated for sym {} as the strike price not found: {}".format(tokenSymbol,cur_time))
 
-            if(SP==None): continue
-
-            logging.info("SP: {}".format(SP))
-            CE_price=SP
-            PE_price=SP
-
-            tradingSym_PE=symbol+str(PE_price)+"PE"
-            tradingSym_CE=symbol+str(CE_price)+"CE"
-
-            logging.info("PE_sym {}".format(tradingSym_PE))
-            logging.info("CE_sym {}".format(tradingSym_CE))
-
-            CE_price=SP+margin_range
-            PE_price=SP-margin_range
-
-            tradingSym_PE_margin=symbol+str(PE_price)+"PE"
-            tradingSym_CE_margin=symbol+str(CE_price)+"CE"
-
-            PE_OTM_buy_order=place_order(tradingSym_PE_margin,"buy",test_date,cur_time,folder_path)
-            CE_OTM_buy_order=place_order(tradingSym_CE_margin,"buy",test_date,cur_time,folder_path)
-            
-            # Check if the sell order have been executed or not
-            PE_ATM_sell_status=False
-            CE_ATM_sell_status=False
-
-            if(PE_OTM_buy_order and CE_OTM_buy_order): 
-                complete_data[tradingSym_CE_margin]=1
-                complete_data[tradingSym_PE_margin]=1
-                test_data[str(tradingSym_PE_margin)]=-(get_ltp(tradingSym_PE_margin,test_date,cur_time,folder_path))
-                test_data[str(tradingSym_CE_margin)]=-(get_ltp(tradingSym_CE_margin,test_date,cur_time,folder_path))
-
-                PE_ATM_sell_order=place_order(tradingSym_PE,"sell",test_date,cur_time,folder_path)
-                PE_LTP=get_ltp(tradingSym_PE,test_date,cur_time,folder_path)
-                if(PE_ATM_sell_order and PE_LTP): 
-                    complete_data[tradingSym_PE]=1
-                    PE_ATM_sell_status=True
-                    limit_PE=PE_LTP*(1+stoploss)
-                    limit_PE=round(limit_PE,1)
-                    test_data[str(tradingSym_PE)]=PE_LTP
-                    PE_price=limit_PE
-                    PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
-            
-
-                CE_ATM_sell_order=place_order(tradingSym_CE,"sell",test_date,cur_time,folder_path)
-                CE_LTP=get_ltp(tradingSym_CE,test_date,cur_time,folder_path)
-                if(CE_ATM_sell_order and CE_LTP): 
-                    complete_data[tradingSym_CE]=1
-                    CE_ATM_sell_status=True
-                    limit_CE=CE_LTP*(1+stoploss)
-                    limit_CE=round(limit_CE,1)
-                    test_data[str(tradingSym_CE)]=CE_LTP
-                    CE_price=limit_CE
-                    CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
-
                     
-        
+        cur_time=(datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) - datetime.timedelta(seconds=1)).time()
         num_lots=1
         no_order=False
-        cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) - datetime.timedelta(seconds=1)).time()
         logging.info("test_data: {}".format(test_data))
+        logging.info('sell_data: {}'.format(sell_data))
         if(num_lots!=0):
     
             # A paramter ti check if the stoploss order has been executed or not
@@ -332,13 +340,15 @@ def limit_order(test_weekday):
                         PE_OTM_sell_order=sell(tradingSym_PE_margin,test_date,folder_path)
                         if(PE_OTM_sell_order): 
                             if(tradingSym_PE_margin in complete_data): complete_data[tradingSym_PE_margin]+=1
-                            if(tradingSym_PE_margin in test_data): test_data[str(tradingSym_PE_margin)]+=get_ltp(tradingSym_PE_margin,test_date,cur_time,folder_path)
+                            if(tradingSym_PE_margin in test_data): test_data[str(tradingSym_PE_margin)]+=PE_OTM_sell_order
+                            if(tradingSym_PE_margin in buy_data): sell_data[tradingSym_PE_margin]=PE_OTM_sell_order
 
                     if(CE_OTM_buy_order): 
                         CE_OTM_sell_order=sell(tradingSym_CE_margin,test_date,folder_path)
                         if(CE_OTM_sell_order): 
                             if (tradingSym_CE_margin in complete_data): complete_data[tradingSym_CE_margin]+=1
-                            if(tradingSym_CE_margin in test_data): test_data[str(tradingSym_CE_margin)]+=get_ltp(tradingSym_CE_margin,test_date,cur_time,folder_path)
+                            if(tradingSym_CE_margin in test_data): test_data[str(tradingSym_CE_margin)]+=CE_OTM_sell_order
+                            if(tradingSym_CE_margin in buy_data): sell_data[tradingSym_CE_margin]=CE_OTM_sell_order
                     
                     break
 
@@ -370,6 +380,7 @@ def limit_order(test_weekday):
                         PE_after_trigger=True
                         if(tradingSym_PE in complete_data): complete_data[tradingSym_PE]+=1
                         if (tradingSym_PE in test_data): test_data[str(tradingSym_PE)]-=cur_PE_price
+                        if(tradingSym_PE in sell_data): buy_data[tradingSym_PE]=cur_PE_price
                         logging.info("Price triggered for {} limit_price {} cur_price {}".format(tradingSym_PE,PE_price,cur_PE_price))
                 
                 if(CE_after_trigger==False):
@@ -377,6 +388,7 @@ def limit_order(test_weekday):
                         CE_after_trigger=True
                         if(tradingSym_CE in complete_data): complete_data[tradingSym_CE]+=1
                         if(tradingSym_CE in test_data): test_data[str(tradingSym_CE)]-=cur_CE_price
+                        if(tradingSym_CE in sell_data): buy_data[tradingSym_CE]=cur_CE_price
                         logging.info("Price triggered for {} limit_price {} cur_price {}".format(tradingSym_CE,CE_price,cur_CE_price))
                         
 
@@ -421,6 +433,8 @@ def limit_order(test_weekday):
                 if(PE_limit_buy_status and CE_limit_buy_status):
                     if(no_order): 
                         logging.info("no order possible")
+                        cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
+                        logging.info("Time updated for sym {} as no order possible: {}".format(tokenSymbol,cur_time))
                         continue
 
                     total_orders=total_orders+1
@@ -429,9 +443,13 @@ def limit_order(test_weekday):
                     if(total_orders>2 or is_current_time(13,00,cur_time)): 
                         logging.info("total orders exceeded or the time is 1:00 pm")
                         no_order=True
+                        cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
+                        logging.info("Time updated for sym {} as no order possible: {}".format(tokenSymbol,cur_time))
                         continue
 
                     logging.info("limit buy orders completed, again placing the sell orders....")
+                    logging.info('sell_data: {}'.format(sell_data))
+                    logging.info('buy_data: {}'.format(buy_data))
 
                     PE_ATM_sell_order=None
                     CE_ATM_sell_order=None
@@ -452,51 +470,55 @@ def limit_order(test_weekday):
                             break
 
                         SP=get_strike_price(tokenSymbol,nearest_range,test_date,cur_time,folder_path)
+
+                        if(SP!=None):
+
+                            logging.info("SP: {}".format(SP))
+                            CE_price=SP
+                            PE_price=SP
+
+                            tradingSym_PE=symbol+str(PE_price)+"PE"
+                            tradingSym_CE=symbol+str(CE_price)+"CE"
+
+                            logging.info("PE_sym {}".format(tradingSym_PE))
+                            logging.info("CE_sym {}".format(tradingSym_CE))
+
+                            CE_price=SP+margin_range
+                            PE_price=SP-margin_range
+
+                            # Check if the sell order have been executed or not
+                            PE_ATM_sell_status=False
+                            CE_ATM_sell_status=False
+
+                            PE_ATM_sell_order=place_order(tradingSym_PE,"sell",test_date,cur_time,folder_path)
+                            if(PE_ATM_sell_order): 
+                                sell_data[tradingSym_PE]=PE_ATM_sell_order
+                                complete_data[tradingSym_PE]=1
+                                PE_LTP=PE_ATM_sell_order
+                                PE_ATM_sell_status=True
+                                limit_PE=PE_LTP*(1+stoploss)
+                                limit_PE=round(limit_PE,1)
+                                test_data[str(tradingSym_PE)]=PE_LTP
+                                PE_price=limit_PE
+                                PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
+                        
+
+                            CE_ATM_sell_order=place_order(tradingSym_CE,"sell",test_date,cur_time,folder_path)
+                            if(CE_ATM_sell_order): 
+                                sell_data[tradingSym_CE]=CE_ATM_sell_order
+                                complete_data[tradingSym_CE]=1
+                                CE_LTP=CE_ATM_sell_order
+                                CE_ATM_sell_status=True
+                                limit_CE=CE_LTP*(1+stoploss)
+                                limit_CE=round(limit_CE,1)
+                                test_data[str(tradingSym_CE)]=CE_LTP
+                                CE_price=limit_CE
+                                CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
+
+                        # Updating the time
                         cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
                         logging.info("Time updated for sym {} as the strike price not found: {}".format(tokenSymbol,cur_time))
 
-                        if(SP==None): continue
-
-                        logging.info("SP: {}".format(SP))
-                        CE_price=SP
-                        PE_price=SP
-
-                        tradingSym_PE=symbol+str(PE_price)+"PE"
-                        tradingSym_CE=symbol+str(CE_price)+"CE"
-
-                        logging.info("PE_sym {}".format(tradingSym_PE))
-                        logging.info("CE_sym {}".format(tradingSym_CE))
-
-                        CE_price=SP+margin_range
-                        PE_price=SP-margin_range
-
-                        # Check if the sell order have been executed or not
-                        PE_ATM_sell_status=False
-                        CE_ATM_sell_status=False
-
-                        PE_ATM_sell_order=place_order(tradingSym_PE,"sell",test_date,cur_time,folder_path)
-                        if(PE_ATM_sell_order): 
-                            complete_data[tradingSym_PE]=1
-                            PE_LTP=get_ltp(tradingSym_PE,test_date,cur_time,folder_path)
-                            PE_ATM_sell_status=True
-                            limit_PE=PE_LTP*(1+stoploss)
-                            limit_PE=round(limit_PE,1)
-                            test_data[str(tradingSym_PE)]=PE_LTP
-                            PE_price=limit_PE
-                            PE_buy_id=place_order(tradingSym_PE,"buy",test_date,cur_time,folder_path)
-                    
-
-                        CE_ATM_sell_order=place_order(tradingSym_CE,"sell",test_date,cur_time,folder_path)
-                        if(CE_ATM_sell_order): 
-                            complete_data[tradingSym_CE]=1
-                            CE_LTP=get_ltp(tradingSym_CE,test_date,cur_time,folder_path)
-                            CE_ATM_sell_status=True
-                            limit_CE=CE_LTP*(1+stoploss)
-                            limit_CE=round(limit_CE,1)
-                            test_data[str(tradingSym_CE)]=CE_LTP
-                            CE_price=limit_CE
-                            CE_buy_id=place_order(tradingSym_CE,"buy",test_date,cur_time,folder_path)
-                            
                     cur_time=(datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) - datetime.timedelta(seconds=1)).time()
 
                 cur_time = (datetime.datetime.combine(datetime.date(1, 1, 1), cur_time) + datetime.timedelta(seconds=1)).time()
@@ -526,7 +548,7 @@ def limit_order(test_weekday):
         data={"test_date":test_date,"instrument_token":key,"net":test_data[key]}
         data_.append(data)
         
-    if(add):
+    if(net_PL and add):
 
         for data in data_:
             update_csv_with_json(filename,data,column_names1)
@@ -535,44 +557,57 @@ def limit_order(test_weekday):
         update_csv_with_json("net.csv",data1,column_names2)
 
     logging.info("Data updated in the csv file")
+    logging.info("sell_data: for sym: {} are- {}".format(tokenSymbol,sell_data))
+    logging.info("buy_data: for sym: {} are- {}".format(tokenSymbol,buy_data))
+    e=time.time()-s
+    logging.info("time_elapsed for sym {} is {}".format(tokenSymbol,e))
 
 
 if __name__=="__main__":
     num=10
     it=0
     logging.info("Executing test6.py")
-    while(it<num):
-        p1=multiprocessing.Process(target=limit_order,args=(0,))
-        p2=multiprocessing.Process(target=limit_order,args=(1,))
-        p3=multiprocessing.Process(target=limit_order,args=(2,))
-        p4=multiprocessing.Process(target=limit_order,args=(3,))
-        p5=multiprocessing.Process(target=limit_order,args=(4,))
+    start_time=time.time()
+    
+    limit_order(0)
+    elapsed_time=time.time()-start_time
+    logging.info("total time_taken: {}".format(elapsed_time))
+
+    # while(it<num):
+    #     p1=multiprocessing.Process(target=limit_order,args=(0,))
+    #     p2=multiprocessing.Process(target=limit_order,args=(1,))
+    #     p3=multiprocessing.Process(target=limit_order,args=(2,))
+    #     p4=multiprocessing.Process(target=limit_order,args=(3,))
+    #     p5=multiprocessing.Process(target=limit_order,args=(4,))
         
 
-        p1.start()
-        p2.start()
-        p3.start()
-        p4.start()
-        p5.start()
+    #     p1.start()
+    #     p2.start()
+    #     p3.start()
+    #     p4.start()
+    #     p5.start()
 
-        logging.info("Process started with pid %s",p1.pid)
-        logging.info("Process started with pid %s",p2.pid)
-        logging.info("Process started with pid %s",p3.pid)
-        logging.info("Process started with pid %s",p4.pid)
-        logging.info("Process started with pid %s",p5.pid)
+    #     logging.info("Process started with pid %s",p1.pid)
+    #     logging.info("Process started with pid %s",p2.pid)
+    #     logging.info("Process started with pid %s",p3.pid)
+    #     logging.info("Process started with pid %s",p4.pid)
+    #     logging.info("Process started with pid %s",p5.pid)
 
-        p1.join()
-        p2.join()
-        p3.join()
-        p4.join()
-        p5.join()
-        logging.info("Process joined")
+    #     p1.join()
+    #     p2.join()
+    #     p3.join()
+    #     p4.join()
+    #     p5.join()
+    #     logging.info("Process joined")
 
-        # print("iteration ",it)
+    #     elapsed_time=time.time()-start_time
+    #     logging.info("total time_taken: {}".format(elapsed_time))
 
-        # print(test_input)
+    #     # print("iteration ",it)
 
-        for input in test_input:
-            input[0]=(datetime.datetime.strptime(input[0], "%Y-%m-%d") + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    #     # print(test_input)
+
+    #     for input in test_input:
+    #         input[0]=(datetime.datetime.strptime(input[0], "%Y-%m-%d") + datetime.timedelta(days=7)).strftime("%Y-%m-%d")
         
-        it+=5
+    #     it+=5
