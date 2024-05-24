@@ -266,13 +266,13 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
         if(LTP): buy_id=place_sl_order(tradingSym_ATM,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit,trigger)
 
     elif(sl_reached==False):
-        if(order_status(buy_id,"TRIGGER PENDING")==False): sl_reached=True
+        not_triggered=order_status(buy_id,"TRIGGER PENDING")
+        if(not_triggered==False): sl_reached=True
 
         else:
             limit=min_val(cur_price,stoploss,limit)
-            # trigger_og=trigger
             trigger=round(limit*percent,1)
-            if(place_limit_order(cur_price,LTP) and buy_id!=None and order_status(buy_id,"TRIGGER PENDING")):
+            if(place_limit_order(cur_price,LTP) and buy_id!=None and not_triggered):
                 if(num_mod<23):
                     buy_id=kite.modify_order(order_id=buy_id, price=limit, trigger_price=trigger, variety=kite.VARIETY_REGULAR, order_type=kite.ORDER_TYPE_SL)
                     if(buy_id): 
