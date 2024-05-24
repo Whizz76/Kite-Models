@@ -13,14 +13,16 @@ index_data1=pd.read_csv("Bnf_index_data_(16Aug'21To30Aug'22).csv")
 index_data2=pd.read_csv("Bnf_index_data_(30Aug'22To30Aug'23).csv")
 
 
-filename1="BNF_data3_21_22.csv"
-filename2="BNF_data4_22_23.csv"
+filename1="BNF_data5_21_22.csv"
+filename2="BNF_data6_22_23.csv"
+filename="BNF_Aug_21_22_"
 
 
 # Updating the csv file
-column_names=['date','token','stoploss','max_order','net_P&L','time']
+column_names=['date','token','stoploss','max_order','net_P&L','time_taken','start_time']
 
 for i in range(1,11):
+    column_names.append('Actual_ltp_'+str(i))
     column_names.append("SP_"+str(i))
     column_names.append("SP_time_"+str(i))
     column_names.append("CE_sell_"+str(i))
@@ -91,7 +93,7 @@ def get_folder_names(directory,start_y,start_m,start_d,end_y,end_m,end_d):
     return sorted_dates
 
 directory = "../Data_BNF/Data_BNF"
-sorted_dates1 = get_folder_names(directory,2021,8,16,2022,8,30)
+sorted_dates1 = get_folder_names(directory,2022,1,7,2022,8,30)
 sorted_dates2 = get_folder_names(directory,2022,8,30,2023,8,30)
 
 def initialise_dict():
@@ -106,7 +108,9 @@ def is_file_present(folder_path, file_name):
 
 start_time = datetime.strptime('09:15:00', '%H:%M:%S')
 end_time = datetime.strptime('15:15:00', '%H:%M:%S')
-time_step = timedelta(minutes=1)  # Assuming 5-minute intervals
+end_time1=datetime.strptime('14:00:00', '%H:%M:%S')
+time_step = timedelta(minutes=1)
+time_step1 = timedelta(minutes=5)  # Assuming 5-minute intervals
 
 # Define the range for stoploss (percentage)
 min_percentage = 50
@@ -114,6 +118,7 @@ max_percentage = 100
 percentage_step = 5  # Assuming 5% intervals
 
 time_values=[]
+time_values1=[]
 stoploss_values=[]
 order_ranges=[]
 
@@ -132,7 +137,7 @@ def get_reverse(test_date):
 
 # Number of numbers after hitting SL for both call and put
 # 3-10
-for i in range(5,11):
+for i in range(1,6):
     order_ranges.append(i)
 # BNF2021081836100CE
 # Storing the time values
@@ -142,6 +147,10 @@ while current_time <= end_time:
     time_values.append(current_time.strftime("%H:%M:%S"))
     current_time += time_step
 
+current_time = start_time
+while current_time <= end_time1:
+    time_values1.append(current_time.strftime("%H:%M:%S"))
+    current_time += time_step1
 # Storing the stoploss values
 
 stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step))
@@ -155,11 +164,14 @@ def is_exit_time(time,hr,mn):
     t=datetime.strptime(time,"%H:%M:%S")
     return t.hour>=hr and t.minute>=mn
 
-def limit_order(sorted_dates,filename,index_data):
-    for order_range in order_ranges:
-        for stoploss_val in stoploss_values:
-            stoploss=round(0.01*stoploss_val,2)
-            for day in sorted_dates:
+def limit_order(sorted_dates,filename,index_data,order_range):
+    
+    for stoploss_val in stoploss_values:
+        stoploss=round(0.01*stoploss_val,2)
+        for day in sorted_dates:
+            filename_exp="../Data_BNF/Data_BNF/"+get_reverse(day)
+            if os.path.exists(filename_exp)==False: continue
+            for time_val1 in time_values1:
                 SP=None
                 sl_reached_PE=True
                 sl_reached_CE=True
@@ -168,14 +180,20 @@ def limit_order(sorted_dates,filename,index_data):
                 s=time.time()
                 e=s
                 data=initialise_dict()
+                start=False
                 for time_val in time_values:
 
+                    if(time_val==time_val1):
+                        start=True
+                    if(start==False): continue
+
                     if(sl_reached_PE and sl_reached_CE):
-                        if(num_order>=order_range or is_exit_time(time_val,13,0)): continue
+                        if(num_order>=order_range or (is_exit_time(time_val,13,0) and num_order!=0)): continue
                         SP=index_data[index_data['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
                         if(SP.empty==False): 
                             SP=SP.iloc[0]
                             SP=SP['close']
+                            actual_ltp=SP
                             SP=int(round(SP,-2))
                             tradingSym_PE=get_sym(day)+str(SP)+"PE"
                             tradingSym_CE=get_sym(day)+str(SP)+"CE"
@@ -213,6 +231,7 @@ def limit_order(sorted_dates,filename,index_data):
                         num_order+=1
 
                         data["SP_"+str(num_order)]=SP
+                        data['Actual_ltp_'+str(num_order)]=actual_ltp
                         data["SP_time_"+str(num_order)]=time_val
                         data["CE_sell_"+str(num_order)]=CE_LTP_og
                         data["start_time_CE_"+str(num_order)]=time_val
@@ -266,7 +285,8 @@ def limit_order(sorted_dates,filename,index_data):
                 data["stoploss"]=stoploss
                 data['max_order']=order_range
                 data['net_P&L']=net
-                data['time']=time_elapsed
+                data['time_taken']=time_elapsed
+                data['start_time']=time_val1
                 # data={'date':day,'token':'BNF','stoploss':stoploss,'max_order':order_range,'net_P&L':net,'time':time_elapsed}
                 # print(data)
                 # print(time_val)
@@ -274,20 +294,33 @@ def limit_order(sorted_dates,filename,index_data):
                 
 
 if __name__=="__main__":
-    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename1,index_data1,))
-    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates2,filename2,index_data2,))
+    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(1)+'.csv',index_data1,1,))
+    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(2)+'.csv',index_data1,2,))
+    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(3)+'.csv',index_data1,3,))
+    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(4)+'.csv',index_data1,4,))
+    # p5=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(5)+'.csv',index_data1,5,))
+    
    
 
     p1.start()
     p2.start()
+    p3.start()
+    p4.start()
+    # p5.start()
     
 
     logging.info("Process started with pid %s",p1.pid)
     logging.info("Process started with pid %s",p2.pid)
+    logging.info("Process started with pid %s",p3.pid)
+    logging.info("Process started with pid %s",p4.pid)
+    # logging.info("Process started with pid %s",p5.pid)
     
 
     p1.join()
     p2.join()
+    p3.join()
+    p4.join()
+    # p5.join()
     # print(initialise_dict())
     # print(sorted_dates1)
    

@@ -9,14 +9,10 @@ import json
 import requests
 
 logging.basicConfig(level=logging.DEBUG)
-logging.info("Executing kiteorder3.py")
+logging.info("Executing kiteorder4.py")
 
 api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
-
-# get the request token from "https://kite.trade/connect/login?api_key=xxxxx&v=3" and login.
-# data = kite.generate_session("h3PyhDEbw3N5yO7X9WNclOcPpKa6tSjD",api_secret="oc4jdd5sa8k6e7m6r463s898blepehmj")
-# logging.info(data)
 
 # Get the access token from the above response and store it in a variable
 access_token = "dxfHFTxKSKTGgTro49yv5fSX5ddNfqjI"
@@ -372,7 +368,7 @@ def place_order_time(time_hour,time_minute):
                     place_CE_limit_order=place_limit_order(cur_CE_price,CE_LTP)
                     
                     if(place_PE_limit_order and PE_limit_buy_status==False): 
-                        if(PE_buy_id and order_status(PE_buy_id,"OPEN")): 
+                        if(PE_buy_id and order_status(PE_buy_id,"TRIGGER PENDING")): 
                             temp_id=PE_buy_id
                             PE_buy_id=place_sl_order(tradingSym_PE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_PE)
                             PE_LTP=cur_PE_price
@@ -390,7 +386,7 @@ def place_order_time(time_hour,time_minute):
                         else: PE_limit_buy_status=True
 
                     if(place_CE_limit_order and CE_limit_buy_status==False): 
-                        if(CE_buy_id and order_status(CE_buy_id,"OPEN")):
+                        if(CE_buy_id and order_status(CE_buy_id,"TRIGGER PENDING")):
                             temp_id=CE_buy_id 
                             CE_buy_id=place_sl_order(tradingSym_CE,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit_CE)
                             CE_LTP=cur_CE_price
