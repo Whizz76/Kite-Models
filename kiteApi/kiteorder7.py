@@ -256,7 +256,7 @@ trade_data={
 }
 
 
-def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger):
+def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,quantity):
     global stoploss,percent,num_mod
 
     if(buy_id==None): 
@@ -270,11 +270,11 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger):
 
         else:
             limit=min_val(cur_price,stoploss,limit)
-            trigger_og=trigger
+            # trigger_og=trigger
             trigger=round(limit*percent,1)
             if(place_limit_order(cur_price,LTP) and buy_id!=None and order_status(buy_id,"TRIGGER PENDING")):
                 if(num_mod<23):
-                    buy_id=kite.modify_order(order_id=buy_id, price=limit, trigger_price=trigger_og, variety=kite.VARIETY_REGULAR, order_type=kite.ORDER_TYPE_SL)
+                    buy_id=kite.modify_order(order_id=buy_id, price=limit, trigger_price=trigger, variety=kite.VARIETY_REGULAR, order_type=kite.ORDER_TYPE_SL)
                     if(buy_id): 
                         LTP=cur_price
                         num_mod+=1
@@ -353,12 +353,12 @@ def on_ticks(ws, ticks):
       if(tick['instrument_token']==token_PE): 
           cur_PE_price=tick['last_price'] #buy_id,LTP,limit,trigger,sl_reached
           PE_buy_id,PE_LTP,limit_PE,trigger_PE,trade_data['sl_reached_PE']=buy_sl_order(PE_buy_id,PE_LTP,cur_PE_price,tradingSym_PE_ATM,limit_PE,
-                                                                       trade_data['sl_reached_PE'],trigger_PE)
+                                                                       trade_data['sl_reached_PE'],trigger_PE,quantity)
 
       if(tick['instrument_token']==token_CE): 
           cur_CE_price=tick['last_price']
           CE_buy_id,CE_LTP,limit_CE,trigger_CE,trade_data['sl_reached_CE']=buy_sl_order(CE_buy_id,CE_LTP,cur_CE_price,tradingSym_CE_ATM,limit_CE
-                                                                       ,trade_data['sl_reached_CE'],trigger_CE)
+                                                                       ,trade_data['sl_reached_CE'],trigger_CE,quantity)
                        
   time.sleep(1)
   logging.debug("processing tokens")
