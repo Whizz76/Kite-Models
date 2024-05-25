@@ -289,7 +289,7 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
     return buy_id,LTP,limit,trigger,sl_reached
 
 def on_ticks(ws, ticks):
-  global num_orders,num_mod,quantity,percent,trade_data,instrument_syms
+  global num_orders,num_mod,quantity,percent
   
   for tick in ticks:
       if(trade_data["PE_OTM_sell_status"] and trade_data["CE_OTM_sell_status"]): continue

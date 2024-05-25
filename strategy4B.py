@@ -9,13 +9,18 @@ import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG)
 
-index_data1=pd.read_csv("Bnf_index_data_(16Aug'21To30Aug'22).csv")
-index_data2=pd.read_csv("Bnf_index_data_(30Aug'22To30Aug'23).csv")
+index_data=pd.read_csv("Bnf_index_data_(16Aug'21To30Aug'22).csv")
+res=index_data[index_data['datetime']=="2022-01-06 09:15:00"]
 
+# index_data2=pd.read_csv("Bnf_index_data_(30Aug'22To30Aug'23).csv")
+token="BNF"
+round_range=100
+if token=='NIFTY' or token=="FINNIFTY": round_range=50
 
 filename1="BNF_data5_21_22.csv"
 filename2="BNF_data6_22_23.csv"
-filename="BNF_Aug_21_22_"
+filename="BNF_Data_1"
+directory = "../Data_BNF/Data_BNF/"
 
 
 # Updating the csv file
@@ -71,7 +76,7 @@ def update_csv_with_json(csv_file, json_data,column_names):
 
 # Get the folder names
 
-def get_folder_names(directory,start_y,start_m,start_d,end_y,end_m,end_d):
+def get_folder_names(directory):
     folder_names = []
     for entry in os.scandir(directory):
         if entry.is_dir():
@@ -80,10 +85,7 @@ def get_folder_names(directory,start_y,start_m,start_d,end_y,end_m,end_d):
     dates=[]
     for name in folder_names:
         date=datetime.strptime(name, "%d-%m-%Y")
-        if(date.year<start_y or date.year>end_y): continue
-        if((date.year==start_y and date.month<start_m) or (date.year==end_y and date.month>end_m)): continue
-        if((date.year==start_y and date.month==start_m and date.day<start_d) or 
-           (date.year==end_y and date.month==end_m and date.day>end_d)): continue
+        if(date.year<2022 or date.month<2): continue
         date=datetime.strftime(date,"%Y-%m-%d")
         # print(date,name)
         dates.append(date)
@@ -92,9 +94,7 @@ def get_folder_names(directory,start_y,start_m,start_d,end_y,end_m,end_d):
     sorted_dates = sorted(dates)
     return sorted_dates
 
-directory = "../Data_BNF/Data_BNF"
-sorted_dates1 = get_folder_names(directory,2022,1,7,2022,8,30)
-sorted_dates2 = get_folder_names(directory,2022,8,30,2023,8,30)
+sorted_dates = get_folder_names(directory)
 
 def initialise_dict():
     data={}
@@ -169,8 +169,6 @@ def limit_order(sorted_dates,filename,index_data,order_range):
     for stoploss_val in stoploss_values:
         stoploss=round(0.01*stoploss_val,2)
         for day in sorted_dates:
-            filename_exp="../Data_BNF/Data_BNF/"+get_reverse(day)
-            if os.path.exists(filename_exp)==False: continue
             for time_val1 in time_values1:
                 SP=None
                 sl_reached_PE=True
@@ -183,7 +181,7 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                 start=False
                 for time_val in time_values:
 
-                    if(time_val==time_val1):
+                    if(start==False and time_val==time_val1):
                         start=True
                     if(start==False): continue
 
@@ -194,20 +192,17 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                             SP=SP.iloc[0]
                             SP=SP['close']
                             actual_ltp=SP
-                            SP=int(round(SP,-2))
-                            tradingSym_PE=get_sym(day)+str(SP)+"PE"
-                            tradingSym_CE=get_sym(day)+str(SP)+"CE"
+                            SP=int((round(SP/round_range))*round_range)
                         else: SP=None
                         if(SP==None): continue
 
                         tradingSym_PE=get_sym(day)+str(SP)+"PE"
                         tradingSym_CE=get_sym(day)+str(SP)+"CE"
                         
-                        filename_PE="../Data_BNF/Data_BNF/"+get_reverse(day)+"/"+tradingSym_PE+".csv"
-                        filename_CE="../Data_BNF/Data_BNF/"+get_reverse(day)+"/"+tradingSym_CE+".csv"
+                        filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".csv"
+                        filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".csv"
 
-                        if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False:
-                            continue
+                        if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False: continue
 
                         PE_df=pd.read_csv(filename_PE)
                         CE_df=pd.read_csv(filename_CE)
@@ -294,11 +289,11 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                 
 
 if __name__=="__main__":
-    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(1)+'.csv',index_data1,1,))
-    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(2)+'.csv',index_data1,2,))
-    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(3)+'.csv',index_data1,3,))
-    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(4)+'.csv',index_data1,4,))
-    # p5=multiprocessing.Process(target=limit_order,args=(sorted_dates1,filename+str(5)+'.csv',index_data1,5,))
+    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,1,))
+    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,2,))
+    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,3,))
+    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,4,))
+    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,5,))
     
    
 
@@ -306,21 +301,21 @@ if __name__=="__main__":
     p2.start()
     p3.start()
     p4.start()
-    # p5.start()
+    p5.start()
     
 
     logging.info("Process started with pid %s",p1.pid)
     logging.info("Process started with pid %s",p2.pid)
     logging.info("Process started with pid %s",p3.pid)
     logging.info("Process started with pid %s",p4.pid)
-    # logging.info("Process started with pid %s",p5.pid)
+    logging.info("Process started with pid %s",p5.pid)
     
 
     p1.join()
     p2.join()
     p3.join()
     p4.join()
-    # p5.join()
+    p5.join()
     # print(initialise_dict())
     # print(sorted_dates1)
    
