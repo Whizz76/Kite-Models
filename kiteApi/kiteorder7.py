@@ -91,8 +91,8 @@ instruments=pd.json_normalize(instruments)
 instrument_syms={}
 
 for i in range(len(instruments)):
-    if(symbol in instruments.loc[i,'tradingsymbol'] or token_sym in instruments.loc[i,'tradingsymbol']):
-        instrument_syms[instruments.loc[i,'tradingsymbol']]=instruments.loc[i,'instrument_token']
+    if(symbol in instruments.loc[i,'tradingsymbol'] or instruments.loc[i,'tradingsymbol']==token_sym):
+        instrument_syms[instruments.loc[i,'tradingsymbol']]=int(instruments.loc[i,'instrument_token'])
 
 inst_ts=list(instrument_syms.values())
 
@@ -252,7 +252,8 @@ trade_data={
     "sl_reached_PE":True,"sl_reached_CE":True,"SP":None,"PE_OTM_sell_status":False,"CE_OTM_sell_status":False,
     "PE_OTM_buy_order":None,"CE_OTM_buy_order":None,"tradingSym_PE_OTM":None,"tradingSym_CE_OTM":None,"token":token_sym,"symbol":symbol,
     "exit_hr":exit_time_hour,"exit_min":exit_time_min,"entry_hr":entry_time_hour,"entry_min":entry_time_min,"nearest_range":nearest_range,
-    "margin_range":margin_range
+    "margin_range":margin_range,"tradingSym_PE_ATM":None,"tradingSym_CE_ATM":None,"PE_buy_id":None,"CE_buy_id":None,
+    "PE_LTP":None,"CE_LTP":None,"limit_PE":None,"limit_CE":None,'trigger_PE':None,'trigger_CE':None
 }
 
 
@@ -289,10 +290,13 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
     return buy_id,LTP,limit,trigger,sl_reached
 
 def on_ticks(ws, ticks):
+  print("tickers...")
   global num_orders,num_mod,quantity,percent
-  
   for tick in ticks:
+
       if(trade_data["PE_OTM_sell_status"] and trade_data["CE_OTM_sell_status"]): continue
+
+
       if(is_current_time(trade_data['exit_hr'],trade_data['exit_min'])):
           if(trade_data['PE_OTM_buy_order']): 
               PE_OTM_sell_order=place_order(trade_data['tradingSym_PE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
@@ -310,36 +314,39 @@ def on_ticks(ws, ticks):
           if(trade_data['SP']==None): continue
 
           trade_data['SP']=int(round(trade_data['SP']/trade_data['nearest_range'])*trade_data['nearest_range'])
-          tradingSym_PE_ATM=trade_data['symbol']+str(trade_data['SP'])+"PE"
-          tradingSym_CE_ATM=trade_data['symbol']+str(trade_data['SP'])+"CE"
+          print("SP: ",trade_data['SP'])
+          trade_data['tradingSym_PE_ATM']=trade_data['symbol']+str(trade_data['SP'])+"PE"
+          trade_data['tradingSym_CE_ATM']=trade_data['symbol']+str(trade_data['SP'])+"CE"
+          print("trading symbols ",trade_data['tradingSym_PE_ATM'],trade_data['tradingSym_CE_ATM'])
 
           if(trade_data['tradingSym_PE_OTM']==None): trade_data['tradingSym_PE_OTM']=trade_data['symbol']+str(trade_data['SP']-trade_data['margin_range'])+"PE"
           if(trade_data['tradingSym_CE_OTM']==None): trade_data['tradingSym_CE_OTM']=trade_data['symbol']+str(trade_data['SP']+trade_data['margin_range'])+"CE"
 
           if(quantity==0):
-              sell_sym=[tradingSym_CE_ATM,tradingSym_PE_ATM]
+              sell_sym=[trade_data['tradingSym_CE_ATM'],trade_data['tradingSym_PE_ATM']]
               buy_sym=[trade_data['tradingSym_PE_OTM'],trade_data['tradingSym_CE_OTM']]
               num_lot=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
               if(num_lot==0): continue
               quantity=num_lot*lot_size
+              
 
         #   if(quantity==0 or (quantity>(num_lot*lot_size))): quantity=num_lot*lot_size
 
           if(trade_data['PE_OTM_buy_order']==None): trade_data['PE_OTM_buy_order']=place_order(trade_data['tradingSym_PE_OTM'],"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
           if(trade_data['CE_OTM_buy_order']==None): trade_data['CE_OTM_buy_order']=place_order(trade_data['tradingSym_CE_OTM'],"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
 
-          PE_buy_id=None
-          CE_buy_id=None
-          PE_LTP=None
-          CE_LTP=None
-          limit_PE=None
-          limit_CE=None
-          trigger_PE=None
-          trigger_CE=None
+          trade_data['PE_buy_id']=None
+          trade_data['CE_buy_id']=None
+          trade_data['PE_LTP']=None
+          trade_data['CE_LTP']=None
+          trade_data['limit_PE']=None
+          trade_data['limit_CE']=None
+          trade_data['trigger_PE']=None
+          trade_data['trigger_CE']=None
 
           if(trade_data['PE_OTM_buy_order'] and trade_data['CE_OTM_buy_order']):
-              PE_ATM_sell_order=place_order(tradingSym_PE_ATM,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-              CE_ATM_sell_order=place_order(tradingSym_CE_ATM,"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+              PE_ATM_sell_order=place_order(trade_data['tradingSym_PE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+              CE_ATM_sell_order=place_order(trade_data['tradingSym_CE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
               if(PE_ATM_sell_order and CE_ATM_sell_order):
                   trade_data['sl_reached_PE']=False
                   trade_data['sl_reached_CE']=False
@@ -347,23 +354,34 @@ def on_ticks(ws, ticks):
                   time.sleep(1)
           continue
       
-      token_PE=instrument_syms[tradingSym_PE_ATM]
-      token_CE=instrument_syms[tradingSym_CE_ATM]
+      token_PE=instrument_syms[trade_data['tradingSym_PE_ATM']]
+      token_CE=instrument_syms[trade_data['tradingSym_CE_ATM']]
 
       if(tick['instrument_token']==token_PE): 
+          
           cur_PE_price=tick['last_price'] #buy_id,LTP,limit,trigger,sl_reached
-          PE_buy_id,PE_LTP,limit_PE,trigger_PE,trade_data['sl_reached_PE']=buy_sl_order(PE_buy_id,PE_LTP,cur_PE_price,tradingSym_PE_ATM,limit_PE,
-                                                                       trade_data['sl_reached_PE'],trigger_PE,quantity)
+          print("PE cur price ",cur_PE_price," time- ",tick['exchange_timestamp'])
+          trade_data['PE_buy_id'],trade_data['PE_LTP'],trade_data['limit_PE'],trade_data['trigger_PE'],trade_data['sl_reached_PE']=buy_sl_order(trade_data['PE_buy_id'],trade_data['PE_LTP'],cur_PE_price,trade_data['tradingSym_PE_ATM'],trade_data['limit_PE'],
+                                                                       trade_data['sl_reached_PE'],trade_data['trigger_PE'],quantity)
+          
+          print("PE_LTP {} limit_PE {} trigger_PE {} sl_reached_PE {}".format(trade_data['PE_LTP'],trade_data['limit_PE'],trade_data['trigger_PE'],trade_data['sl_reached_PE']))
 
       if(tick['instrument_token']==token_CE): 
+          
           cur_CE_price=tick['last_price']
-          CE_buy_id,CE_LTP,limit_CE,trigger_CE,trade_data['sl_reached_CE']=buy_sl_order(CE_buy_id,CE_LTP,cur_CE_price,tradingSym_CE_ATM,limit_CE
-                                                                       ,trade_data['sl_reached_CE'],trigger_CE,quantity)
+          print("CE cur price ",cur_CE_price," time- ",tick['exchange_timestamp'])
+          trade_data['CE_buy_id'],trade_data['CE_LTP'],trade_data['limit_CE'],trade_data['trigger_CE'],trade_data['sl_reached_CE']=buy_sl_order(trade_data['CE_buy_id'],trade_data['CE_LTP'],cur_CE_price,trade_data['tradingSym_CE_ATM'],trade_data['limit_CE']
+                                                                       ,trade_data['sl_reached_CE'],trade_data['trigger_CE'],quantity)
+          print("CE_LTP {} limit_CE {} trigger_CE {} sl_reached_CE {}".format(trade_data['CE_LTP'],trade_data['limit_CE'],trade_data['trigger_CE'],trade_data['sl_reached_CE']))
                        
   time.sleep(1)
   logging.debug("processing tokens")
 
+
+print("instrument_tokens ",inst_ts)
+print("instrument_symbols ",instrument_syms)
 def on_connect(ws, response):
+  logging.info("connecting....")
   # Subscribe to a list of instrument_tokens
   ws.subscribe(inst_ts)
   ws.set_mode(ws.MODE_FULL,inst_ts)

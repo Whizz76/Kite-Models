@@ -9,18 +9,14 @@ import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG)
 
-index_data=pd.read_csv("Bnf_index_data_(16Aug'21To30Aug'22).csv")
-res=index_data[index_data['datetime']=="2022-01-06 09:15:00"]
+index_data=pd.read_csv("19_23_Jun_Nifty.csv")
 
-# index_data2=pd.read_csv("Bnf_index_data_(30Aug'22To30Aug'23).csv")
-token="BNF"
+token="Nifty"
 round_range=100
-if token=='NIFTY' or token=="FINNIFTY": round_range=50
+# if token=='NIFTY' or token=="FINNIFTY": round_range=50
 
-filename1="BNF_data5_21_22.csv"
-filename2="BNF_data6_22_23.csv"
-filename="BNF_Data_1"
-directory = "../Data_BNF/Data_BNF/"
+filename="Nifty_data"
+directory = "../Nifty/Nifty/"
 
 
 # Updating the csv file
@@ -85,8 +81,9 @@ def get_folder_names(directory):
     dates=[]
     for name in folder_names:
         date=datetime.strptime(name, "%d-%m-%Y")
-        if(date.year<2022 or date.month<2): continue
         date=datetime.strftime(date,"%Y-%m-%d")
+        SP=index_data[index_data['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(date))]
+        if(SP.empty): continue
         # print(date,name)
         dates.append(date)
 
@@ -122,8 +119,6 @@ time_values1=[]
 stoploss_values=[]
 order_ranges=[]
 
-# Get the trading symbol
-token="BNF"
 def get_sym(date):
     print(date)
     date=date.split('-')
@@ -180,7 +175,7 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                 data=initialise_dict()
                 start=False
                 for time_val in time_values:
-
+                    print(day,time_val1)
                     if(start==False and time_val==time_val1):
                         start=True
                     if(start==False): continue
@@ -202,7 +197,9 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                         filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".csv"
                         filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".csv"
 
-                        if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False: continue
+                        if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False: 
+                            print("Either PE or CE absent for SP {}".format(SP))
+                            continue
 
                         PE_df=pd.read_csv(filename_PE)
                         CE_df=pd.read_csv(filename_CE)
@@ -210,7 +207,9 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                         PE_LTP=PE_df[PE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
                         CE_LTP=CE_df[CE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
 
-                        if(PE_LTP.empty or CE_LTP.empty): continue
+                        if(PE_LTP.empty or CE_LTP.empty): 
+                            print("Either PE or CE absent for PE {} CE {} SP{}".format(tradingSym_PE,tradingSym_CE,SP))
+                            continue
 
                         PE_LTP=(PE_LTP.iloc[0])['close']
                         CE_LTP=(CE_LTP.iloc[0])['close']
@@ -289,6 +288,7 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                 
 
 if __name__=="__main__":
+    # print(sorted_dates)
     p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,1,))
     p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,2,))
     p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,3,))
@@ -316,9 +316,6 @@ if __name__=="__main__":
     p3.join()
     p4.join()
     p5.join()
-    # print(initialise_dict())
-    # print(sorted_dates1)
-   
     
 
 
