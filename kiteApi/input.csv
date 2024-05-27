@@ -1,5 +1,5 @@
 day,instrument_token,trading_symbol,quantity,stoploss,entry_time,exit_time,margin_range,exchange,last_week,nearest_range
-Monday,BANKEX,BANKEX,10,0.6,09:16,15:15,2000,BSE,0,100
+Monday,BANKEX,BANKEX,10,0.6,09:16,15:15,2000,BSE,1,100
 Tuesday,NIFTY FIN SERVICE,FINNIFTY,1,0.2,09:35,15:18,600,NSE,0,50
 Wednesday,NIFTY BANK,BANKNIFTY,1,0.2,09:35,15:18,1500,NSE,0,100
 Thursday,NIFTY 50,NIFTY,150,0.6,09:49,15:18,750,NSE,0,50
