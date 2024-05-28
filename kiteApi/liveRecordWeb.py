@@ -26,6 +26,15 @@ instruments=pd.json_normalize(instruments)
 instrument_tokens=[]
 token_data={}
 
+
+def is_current_time(hour, minute):
+    # Get current time
+    current_time = datetime.now().time()
+    
+    # Check if current hour and minute match the parameters 
+    # (start the process if the current time is greater than or equal to the given time)
+    return current_time.hour >= hour and current_time.minute >= minute
+
 def date_to_string(date_str,is_last_week):
     
     date_object = datetime.strptime(date_str, "%d-%m-%Y")
@@ -163,6 +172,10 @@ def update_csv_with_json(csv_file, json_data):
 def on_ticks(ws, ticks):
 
 #   logging.debug("Ticks: {}".format(ticks))
+
+  if(is_current_time(15,30)):
+      kws.stop()
+      return "End"
 
   for tick in ticks:
     folder_name=token_data[tick["instrument_token"]][0]
