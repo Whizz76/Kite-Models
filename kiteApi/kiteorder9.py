@@ -338,6 +338,7 @@ def on_ticks(ws, ticks):
               buy_sym=[trade_data['tradingSym_PE_OTM'],trade_data['tradingSym_CE_OTM']]
               num_lot=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
               if(num_lot==0): continue
+              num_lot=1
               quantity=num_lot*lot_size
               
 
