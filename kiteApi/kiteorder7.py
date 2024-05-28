@@ -115,7 +115,7 @@ def is_current_time(hour, minute):
 def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
-    margin_percentage=0.3
+    margin_percentage=0.9
     order_param_basket=[]
     for sym in sell_sym:
         order_param_basket.append(
