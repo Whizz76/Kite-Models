@@ -115,7 +115,7 @@ def is_current_time(hour, minute):
 def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
-    margin_percentage=0.9
+    margin_percentage=0.3
     order_param_basket=[]
     for sym in sell_sym:
         order_param_basket.append(
@@ -366,6 +366,7 @@ def on_ticks(ws, ticks):
         sell_sym=[trade_data['tradingSym_CE_ATM'],trade_data['tradingSym_PE_ATM']]
         buy_sym=[trade_data['tradingSym_PE_OTM'],trade_data['tradingSym_CE_OTM']]
         num_lot=num_lots_fun(sell_sym,buy_sym,lot_size,exchange2)
+        num_lot=1
         quantity=num_lot*lot_size
 
     if(trade_data['PE_OTM_buy_order']==None): 
