@@ -301,20 +301,22 @@ def on_ticks(ws, ticks):
 
 
       if(is_current_time(trade_data['exit_hr'],trade_data['exit_min'])):
-          if(trade_data['PE_OTM_buy_order'] and trade_data['PE_OTM_sell_status']==False): 
-              PE_OTM_sell_order=place_order(trade_data['tradingSym_PE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-              if(PE_OTM_sell_order): trade_data['PE_OTM_sell_status']=True
+        if(tick['instrument_token']==instrument_syms[trade_data['token']]):
+            if(trade_data['PE_OTM_buy_order'] and trade_data['PE_OTM_sell_status']==False): 
+                PE_OTM_sell_order=place_order(trade_data['tradingSym_PE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                if(PE_OTM_sell_order): trade_data['PE_OTM_sell_status']=True
 
-          if(trade_data['CE_OTM_buy_order'] and trade_data['CE_OTM_sell_status']==False): 
-              CE_OTM_sell_order=place_order(trade_data['tradingSym_CE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-              if(CE_OTM_sell_order): trade_data['CE_OTM_sell_status']=True
-          time.sleep(2)
-          continue
+            if(trade_data['CE_OTM_buy_order'] and trade_data['CE_OTM_sell_status']==False): 
+                CE_OTM_sell_order=place_order(trade_data['tradingSym_CE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                if(CE_OTM_sell_order): trade_data['CE_OTM_sell_status']=True
+            time.sleep(2)
+            continue
       
       if(trade_data['sl_reached_PE'] and trade_data['sl_reached_CE']):
           if(num_orders>=3 or (is_current_time(13,00) and num_orders!=0)): continue
 
           if(tick['instrument_token']==instrument_syms[trade_data['token']]): trade_data['SP']=tick["last_price"]
+          else: continue
           if(trade_data['SP']==None): continue
 
           trade_data['SP']=int(round(trade_data['SP']/trade_data['nearest_range'])*trade_data['nearest_range'])
