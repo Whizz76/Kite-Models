@@ -253,7 +253,7 @@ trade_data={
     "PE_OTM_buy_order":None,"CE_OTM_buy_order":None,"tradingSym_PE_OTM":None,"tradingSym_CE_OTM":None,"token":token_sym,"symbol":symbol,
     "exit_hr":exit_time_hour,"exit_min":exit_time_min,"entry_hr":entry_time_hour,"entry_min":entry_time_min,"nearest_range":nearest_range,
     "margin_range":margin_range,"tradingSym_PE_ATM":None,"tradingSym_CE_ATM":None,"PE_buy_id":None,"CE_buy_id":None,
-    "PE_LTP":None,"CE_LTP":None,"limit_PE":None,"limit_CE":None,'trigger_PE':None,'trigger_CE':None
+    "PE_LTP":None,"CE_LTP":None,"limit_PE":None,"limit_CE":None,'trigger_PE':None,'trigger_CE':None,"cur_PE_price":None,"cur_CE_price":None
 }
 
 
