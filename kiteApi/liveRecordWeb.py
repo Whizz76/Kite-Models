@@ -49,10 +49,11 @@ def date_to_string(date_str,is_last_week):
 
 def add_token(instrument_tokens,exchange,instrument_token,range_num,symbol,folder_path,expiry_date):
     actual_LTP=kite.quote(exchange+":"+instrument_token)[exchange+":"+instrument_token]["last_price"]
-    LTP=round(actual_LTP/100)*100
-    if(str(instrument_token).strip()=="NIFTY" or str(instrument_token).strip()=="FIN NIFTY SERVICE"): LTP=LTP=round(actual_LTP/50)*50
+    r=100
+    if(str(instrument_token).strip()=="NIFTY" or str(instrument_token).strip()=="FIN NIFTY SERVICE"): r=50
+    LTP=round(actual_LTP/r)*r
     print(instrument_token,LTP)
-    for i in range(LTP-range_num,LTP+range_num+1,100):  
+    for i in range(LTP-range_num,LTP+range_num+1,r):  
         tradingSym_CE=symbol+str(i)+"CE"
         CE_ticker=instruments[instruments["tradingsymbol"]==tradingSym_CE]["instrument_token"]
 
