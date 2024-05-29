@@ -388,7 +388,7 @@ def on_ticks(ws, ticks):
     except Exception as e:
         pass
                       
-  time.sleep(1)
+  time.sleep(2)
   logging.debug("processing tokens")
 
 
