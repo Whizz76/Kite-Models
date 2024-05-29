@@ -308,7 +308,6 @@ def on_ticks(ws, ticks):
             if(trade_data['CE_OTM_buy_order'] and trade_data['CE_OTM_sell_status']==False): 
                 CE_OTM_sell_order=place_order(trade_data['tradingSym_CE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
                 if(CE_OTM_sell_order): trade_data['CE_OTM_sell_status']=True
-        time.sleep(2)
         continue
       
       if(trade_data['sl_reached_PE'] and trade_data['sl_reached_CE']):
