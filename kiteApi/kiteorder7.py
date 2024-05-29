@@ -287,7 +287,6 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
                         cancelled_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(temp_id))
                         logging.info("order cancelled {} temp_id {}".format(cancelled_id,temp_id))
 
-    time.sleep(2)
     return buy_id,LTP,limit,trigger,sl_reached
 
 def on_ticks(ws, ticks):
