@@ -253,7 +253,8 @@ trade_data={
     "PE_OTM_buy_order":None,"CE_OTM_buy_order":None,"tradingSym_PE_OTM":None,"tradingSym_CE_OTM":None,"token":token_sym,"symbol":symbol,
     "exit_hr":exit_time_hour,"exit_min":exit_time_min,"entry_hr":entry_time_hour,"entry_min":entry_time_min,"nearest_range":nearest_range,
     "margin_range":margin_range,"tradingSym_PE_ATM":None,"tradingSym_CE_ATM":None,"PE_buy_id":None,"CE_buy_id":None,
-    "PE_LTP":None,"CE_LTP":None,"limit_PE":None,"limit_CE":None,'trigger_PE':None,'trigger_CE':None,"cur_PE_price":None,"cur_CE_price":None
+    "PE_LTP":None,"CE_LTP":None,"limit_PE":None,"limit_CE":None,'trigger_PE':None,'trigger_CE':None,"cur_PE_price":None,"cur_CE_price":None,
+    "PE_ATM_sell_order":None,"CE_ATM_sell_order":None
 }
 
 
@@ -352,11 +353,13 @@ def on_ticks(ws, ticks):
           trade_data['trigger_CE']=None
 
           if(trade_data['PE_OTM_buy_order'] and trade_data['CE_OTM_buy_order']):
-              PE_ATM_sell_order=place_order(trade_data['tradingSym_PE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-              CE_ATM_sell_order=place_order(trade_data['tradingSym_CE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
-              if(PE_ATM_sell_order and CE_ATM_sell_order):
+              if(trade_data['PE_ATM_sell_order']==None): trade_data['PE_ATM_sell_order']=place_order(trade_data['tradingSym_PE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+              if(trade_data['CE_ATM_sell_order']==None): trade_data['CE_ATM_sell_order']=place_order(trade_data['tradingSym_CE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+              if(trade_data['PE_ATM_sell_order'] and trade_data['CE_ATM_sell_order']):
                   trade_data['sl_reached_PE']=False
                   trade_data['sl_reached_CE']=False
+                  trade_data['PE_ATM_sell_order']=None
+                  trade_data['CE_ATM_sell_order']=None
                   num_orders+=1
                   time.sleep(1)
           continue
