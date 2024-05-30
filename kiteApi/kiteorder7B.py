@@ -361,7 +361,7 @@ def on_ticks(ws, ticks):
                   trade_data['PE_ATM_sell_order']=None
                   trade_data['CE_ATM_sell_order']=None
                   num_orders+=1
-                  time.sleep(1)
+                #   time.sleep(1)
           continue
       
       token_PE=instrument_syms[trade_data['tradingSym_PE_ATM']]
