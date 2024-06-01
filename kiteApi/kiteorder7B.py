@@ -15,7 +15,7 @@ api_key = "t416qxyj6fek1upt"
 kite = KiteConnect(api_key=api_key)
 
 # Get the access token from the above response and store it in a variable
-access_token = "dxfHFTxKSKTGgTro49yv5fSX5ddNfqjI"
+# access_token = "pakVkJ5X3OTNuJcGS4jo9v695s3HeuP6"
 kite.set_access_token(access_token)
 kws=KiteTicker(api_key,access_token)
 
@@ -97,7 +97,8 @@ for i in range(len(instruments)):
 inst_ts=list(instrument_syms.values())
 
 logging.info("symbol {}".format(symbol))
-
+# Variable to check how many orders were requested
+num_order_req=0
 
 
 def is_current_time(hour, minute):
@@ -115,7 +116,7 @@ def is_current_time(hour, minute):
 def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     # Fetch margin detail for order/orders
     num_lots=0
-    margin_percentage=0.3
+    margin_percentage=0.7
     order_param_basket=[]
     for sym in sell_sym:
         order_param_basket.append(
@@ -163,8 +164,10 @@ def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
 
 # Check if the order was successful
 def order_status(order_id,status):
+    print("searching for ",order_id," ",status," ",datetime.now().time())
     for order in kite.orders():
         if order["order_id"] == str(order_id):
+            print(order["status"]," ",order['order_id']," ",datetime.now().time())
             if(status=="OPEN"): return order["status"] == "OPEN" or order["status"] == "TRIGGER PENDING"
             return order["status"] == status
     return False
@@ -172,6 +175,11 @@ def order_status(order_id,status):
 
 # Place an order
 def place_order(symbol,direction,exchange,o_type,product,quantity):
+    global num_order_req
+    num_order_req+=1
+    if(num_order_req>=16): 
+        logging.info("Max number of requested orders (16) reached")
+        return None
     logging.info("placing {} order current time {}".format(direction,datetime.now().time()))
     
     try:
@@ -184,7 +192,7 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
                                     product=product)
         
         # If the order was successful return the order id
-        if(order_status(order_id,"COMPLETE")): 
+        if(order_status(order_id,"OPEN") or order_status(order_id,"COMPLETE")): 
             logging.info("Order placed. ID is: {}".format(order_id))
             return order_id
         
@@ -198,7 +206,12 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
 
 # placing a SL-Limit order
 def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price,trigger_price):
-    logging.info("trigger_price: {} limit_price {}".format(trigger_price,price))
+    global num_order_req
+    num_order_req+=1
+    if(num_order_req>=16): 
+        logging.info("Max number of requested orders (16) reached")
+        return None
+    logging.info("trigger_price: {} limit_price {} time {}".format(trigger_price,price,datetime.now().time()))
     
     try:
         order_id = kite.place_order(tradingsymbol=symbol,
@@ -295,10 +308,11 @@ def on_ticks(ws, ticks):
   global num_orders,num_mod,quantity,percent
   for tick in ticks:
       
-    try:
-
+    # try:
+      if(is_current_time(trade_data['entry_hr'],trade_data['entry_min'])==False): continue
+      print(tick['instrument_token']," ",datetime.now())
       if(trade_data["PE_OTM_sell_status"] and trade_data["CE_OTM_sell_status"]): 
-          kws.stop()
+          ws.stop()
           return "END"
 
 
@@ -317,7 +331,9 @@ def on_ticks(ws, ticks):
           if(num_orders>=3 or (is_current_time(13,00) and num_orders!=0)): continue
 
           if(tick['instrument_token']==instrument_syms[trade_data['token']]): trade_data['SP']=tick["last_price"]
-          else: continue
+          else: 
+              print("token not needed: ",tick['instrument_token'])
+              continue
           if(trade_data['SP']==None): continue
 
           trade_data['SP']=int(round(trade_data['SP']/trade_data['nearest_range'])*trade_data['nearest_range'])
@@ -388,8 +404,8 @@ def on_ticks(ws, ticks):
                                                                        ,trade_data['sl_reached_CE'],trade_data['trigger_CE'],quantity)
           print("CE_LTP {} limit_CE {} trigger_CE {} sl_reached_CE {}".format(trade_data['CE_LTP'],trade_data['limit_CE'],trade_data['trigger_CE'],trade_data['sl_reached_CE']))
 
-    except Exception as e:
-        pass
+    # except Exception as e:
+    #     pass
                       
   time.sleep(2)
   logging.debug("processing tokens")
