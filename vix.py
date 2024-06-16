@@ -45,3 +45,15 @@ stock_data.to_csv(index=False)
 csv_file_name="19_23_Aug_Vix.csv"
 # stock_data.to_csv('Bnf_index_data_2021.csv')
 stock_data.to_csv(os.path.join(folder_path,csv_file_name),index=False)
+
+# if(var>=10)
+    #           {
+    #             var=0;
+    #             num++;
+    #             if(PE is !None)
+    #                 placeOrder(buyforPE);
+    #            else if (CE is !none )
+    #                placeOrder(buyforCE)
+    #           }
+    #  }
+# 

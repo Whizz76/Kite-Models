@@ -15,7 +15,7 @@ token="Nifty"
 round_range=50
 
 
-filename="NIFTY_Data"
+filename="NIFTY_Data3A"
 
 # Path to the directory containing the unzipped data
 directory = "../Nifty/"
@@ -82,6 +82,7 @@ def get_folder_names(directory):
     # Convert folder names to dates
     dates=[]
     for name in folder_names:
+        if("2" not in name): continue
         date=datetime.strptime(name, "%d-%m-%Y")
         date=datetime.strftime(date,"%Y-%m-%d")
         SP=index_data[index_data['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(date))]
@@ -94,6 +95,7 @@ def get_folder_names(directory):
     return sorted_dates
 
 sorted_dates = get_folder_names(directory)
+print(sorted_dates)
 
 def initialise_dict():
     data={}
@@ -107,17 +109,21 @@ def is_file_present(folder_path, file_name):
 
 start_time = datetime.strptime('09:15:00', '%H:%M:%S')
 end_time = datetime.strptime('15:15:00', '%H:%M:%S')
-end_time1=datetime.strptime('14:00:00', '%H:%M:%S')
 time_step = timedelta(minutes=1)
-time_step1 = timedelta(minutes=5)  # Assuming 5-minute intervals
+# time_step1 = timedelta(minutes=5)  # Assuming 5-minute intervals
 
 # Define the range for stoploss (percentage)
-min_percentage = 50
+min_percentage = 20
 max_percentage = 100
-percentage_step = 5  # Assuming 5% intervals
+percentage_step = 10  # Assuming 5% intervals
 
 time_values=[]
-time_values1=[]
+time_values1=[
+    "09:20:00", "09:30:00", "10:00:00", "10:30:00",
+    "10:45:00", "11:15:00", "11:45:00",
+    "12:15:00", "12:45:00",
+    "13:15:00", "13:45:00"
+]
 stoploss_values=[]
 order_ranges=[]
 
@@ -134,8 +140,10 @@ def get_reverse(test_date):
 
 # Number of numbers after hitting SL for both call and put
 # 3-10
-for i in range(1,6):
-    order_ranges.append(i)
+# for i in range(1,6):
+#     order_ranges.append(i)
+order_ranges.append(3)
+order_range=3
 # BNF2021081836100CE
 # Storing the time values
 
@@ -144,10 +152,6 @@ while current_time <= end_time:
     time_values.append(current_time.strftime("%H:%M:%S"))
     current_time += time_step
 
-current_time = start_time
-while current_time <= end_time1:
-    time_values1.append(current_time.strftime("%H:%M:%S"))
-    current_time += time_step1
 # Storing the stoploss values
 
 stoploss_values = list(range(min_percentage, max_percentage + 1, percentage_step))
@@ -161,9 +165,8 @@ def is_exit_time(time,hr,mn):
     t=datetime.strptime(time,"%H:%M:%S")
     return t.hour>=hr and t.minute>=mn
 
-def limit_order(sorted_dates,filename,index_data,order_range):
-    
-    for stoploss_val in stoploss_values:
+def limit_order(sorted_dates,filename,index_data,stoploss_val):
+        global order_range
         stoploss=round(0.01*stoploss_val,2)
         for day in sorted_dates:
             for time_val1 in time_values1:
@@ -198,6 +201,12 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                         
                         filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".csv"
                         filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".csv"
+
+                        if os.path.exists(filename_PE)==False:
+                            filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".CSV"
+                        
+                        if os.path.exists(filename_CE)==False:
+                            filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".CSV"
 
                         if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False: 
                             print("Either PE or CE absent for SP {}".format(SP))
@@ -236,15 +245,18 @@ def limit_order(sorted_dates,filename,index_data,order_range):
 
                         continue
 
-                    cur_PE=PE_df[PE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
-                    cur_CE=CE_df[CE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
+                    cur_PE_df=PE_df[PE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
+                    cur_CE_df=CE_df[CE_df['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(day) and x.split(' ')[1]==time_val)]
 
-                    if(cur_PE.empty or cur_CE.empty): continue
+                    if(cur_PE_df.empty or cur_CE_df.empty): continue
 
-                    cur_PE=(cur_PE.iloc[0])['close']
-                    cur_CE=(cur_CE.iloc[0])['close']
+                    cur_PE=(cur_PE_df.iloc[0])['close']
+                    cur_CE=(cur_CE_df.iloc[0])['close']
 
-                    if(sl_reached_PE==False and (cur_PE>=limit_PE or is_exit_time(time_val,15,15))):
+                    high_cur_PE=(cur_PE_df.iloc[0])['high']
+                    high_cur_CE=(cur_CE_df.iloc[0])['high']
+
+                    if(sl_reached_PE==False and (high_cur_PE>=limit_PE or is_exit_time(time_val,15,15))):
                         print("triggered for price {} at {}".format(PE_LTP_og,limit_PE))
                         net+=PE_LTP_og
                         net-=limit_PE
@@ -253,7 +265,7 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                         data["end_time_PE_"+str(num_order)]=time_val
                         
                     
-                    if(sl_reached_CE==False and (cur_CE>=limit_CE or is_exit_time(time_val,15,15))):
+                    if(sl_reached_CE==False and (high_cur_CE>=limit_CE or is_exit_time(time_val,15,15))):
                         print("triggered for price {} at {}".format(CE_LTP_og,limit_CE))
                         net+=CE_LTP_og
                         net-=limit_CE
@@ -291,19 +303,29 @@ def limit_order(sorted_dates,filename,index_data,order_range):
 
 if __name__=="__main__":
     # print(sorted_dates)
-    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,1,))
-    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,2,))
-    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,3,))
-    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,4,))
-    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,5,))
-    
+    start_t=time.time()
+    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,50,))
+    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,60,))
+    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,70,))
+    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,80,))
+    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,90,))
+    p6=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,100,))
+    p7=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,30,))
+    p8=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,40,))
+    p9=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,20,))
    
+    
 
     p1.start()
     p2.start()
     p3.start()
     p4.start()
     p5.start()
+    p6.start()
+    p7.start()
+    p8.start()
+    p9.start()
+    
     
 
     logging.info("Process started with pid %s",p1.pid)
@@ -311,6 +333,12 @@ if __name__=="__main__":
     logging.info("Process started with pid %s",p3.pid)
     logging.info("Process started with pid %s",p4.pid)
     logging.info("Process started with pid %s",p5.pid)
+    logging.info("Process started with pid %s",p6.pid)
+    logging.info("Process started with pid %s",p7.pid)
+    logging.info("Process started with pid %s",p8.pid)
+    logging.info("Process started with pid %s",p9.pid)
+    
+
     
 
     p1.join()
@@ -318,8 +346,21 @@ if __name__=="__main__":
     p3.join()
     p4.join()
     p5.join()
+    p6.join()
+    p7.join()
+    p8.join()
+    p9.join()
     
 
+    end_t=time.time()
+    logging.info("Time taken for execution is %s",end_t-start_t)
+    file_name = token+"_timeData4A.txt"
+
+    # Open the file in write mode and store the result
+    with open(file_name, 'w') as file:
+        file.write(str(end_t-start_t))
+
+    print(f"Result has been stored in {file_name}")
 
                     
 

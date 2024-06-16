@@ -82,6 +82,7 @@ def get_folder_names(directory):
     # Convert folder names to dates
     dates=[]
     for name in folder_names:
+        if("2" not in name): continue
         date=datetime.strptime(name, "%d-%m-%Y")
         date=datetime.strftime(date,"%Y-%m-%d")
         SP=index_data[index_data['datetime'].apply(lambda x:x.split(' ')[0].strip()==str(date))]
@@ -94,7 +95,7 @@ def get_folder_names(directory):
     return sorted_dates
 
 sorted_dates = get_folder_names(directory)
-
+print(sorted_dates)
 def initialise_dict():
     data={}
     for key in column_names:
@@ -134,8 +135,10 @@ def get_reverse(test_date):
 
 # Number of numbers after hitting SL for both call and put
 # 3-10
-for i in range(1,6):
-    order_ranges.append(i)
+# for i in range(1,6):
+#     order_ranges.append(i)
+order_ranges.append(3)
+order_range=3
 # BNF2021081836100CE
 # Storing the time values
 
@@ -161,9 +164,8 @@ def is_exit_time(time,hr,mn):
     t=datetime.strptime(time,"%H:%M:%S")
     return t.hour>=hr and t.minute>=mn
 
-def limit_order(sorted_dates,filename,index_data,order_range):
-    
-    for stoploss_val in stoploss_values:
+def limit_order(sorted_dates,filename,index_data,stoploss_val):
+        global order_range
         stoploss=round(0.01*stoploss_val,2)
         for day in sorted_dates:
             for time_val1 in time_values1:
@@ -198,6 +200,12 @@ def limit_order(sorted_dates,filename,index_data,order_range):
                         
                         filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".csv"
                         filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".csv"
+
+                        if os.path.exists(filename_PE)==False:
+                            filename_PE=directory+get_reverse(day)+"/"+tradingSym_PE+".CSV"
+                        
+                        if os.path.exists(filename_CE)==False:
+                            filename_CE=directory+get_reverse(day)+"/"+tradingSym_CE+".CSV"
 
                         if os.path.exists(filename_PE)==False or os.path.exists(filename_CE)==False: 
                             print("Either PE or CE absent for SP {}".format(SP))
@@ -291,12 +299,18 @@ def limit_order(sorted_dates,filename,index_data,order_range):
 
 if __name__=="__main__":
     # print(sorted_dates)
-    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,1,))
-    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,2,))
-    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,3,))
-    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,4,))
-    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,5,))
-    
+    start_t=time.time()
+    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,50,))
+    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,55,))
+    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,60,))
+    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,65,))
+    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,70,))
+    p6=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,75,))
+    p7=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,80,))
+    p8=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,85,))
+    p9=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,90,))
+    p10=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,95,))
+    p11=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,100,))
    
 
     p1.start()
@@ -304,6 +318,12 @@ if __name__=="__main__":
     p3.start()
     p4.start()
     p5.start()
+    p6.start()
+    p7.start()
+    p8.start()
+    p9.start()
+    p10.start()
+    p11.start()
     
 
     logging.info("Process started with pid %s",p1.pid)
@@ -311,6 +331,13 @@ if __name__=="__main__":
     logging.info("Process started with pid %s",p3.pid)
     logging.info("Process started with pid %s",p4.pid)
     logging.info("Process started with pid %s",p5.pid)
+    logging.info("Process started with pid %s",p6.pid)
+    logging.info("Process started with pid %s",p7.pid)
+    logging.info("Process started with pid %s",p8.pid)
+    logging.info("Process started with pid %s",p9.pid)
+    logging.info("Process started with pid %s",p10.pid)
+    logging.info("Process started with pid %s",p11.pid)
+
     
 
     p1.join()
@@ -318,8 +345,22 @@ if __name__=="__main__":
     p3.join()
     p4.join()
     p5.join()
-    
+    p6.join()
+    p7.join()
+    p8.join()
+    p9.join()
+    p10.join()
+    p11.join()
 
+    end_t=time.time()
+    logging.info("Time taken for execution is %s",end_t-start_t)
+    file_name = token+"_timeData.txt"
+
+    # Open the file in write mode and store the result
+    with open(file_name, 'w') as file:
+        file.write(str(end_t-start_t))
+
+    print(f"Result has been stored in {file_name}")
 
                     
 

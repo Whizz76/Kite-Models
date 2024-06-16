@@ -163,13 +163,34 @@ def num_lots_fun(sell_sym,buy_sym,lot_size,exchange2):
     return num_lots
 
 # Check if the order was successful
-def order_status(order_id,status):
+def order_not_triggered(order_id,status):
     print("searching for ",order_id," ",status," ",datetime.now().time())
-    for order in kite.orders():
-        if order["order_id"] == str(order_id):
-            logging.info("order status: {} order_id {} time {}".format(order["status"],order['order_id'],datetime.now().time()))
-            if(status=="OPEN"): return order["status"] == "OPEN" or order["status"] == "TRIGGER PENDING"
-            return order["status"] == status
+    try:
+        for order in kite.orders():
+            if order["order_id"] == str(order_id):
+                logging.info("order status: {} order_id {} time {}".format(order["status"],order['order_id'],datetime.now().time()))
+                if(status in order['status']):
+                    return True
+                else: return False
+    except Exception as e:
+        logging.info("Error in getting kite orders: {}".format(e))
+        return True
+
+    return False
+
+def rejected(order_id):
+    logging.info("searching rejection status for {}".format(order_id))
+    if(order_id==None): return True
+    try:
+        for order in kite.orders():
+            if order["order_id"] == str(order_id):
+                logging.info("order status: {} order_id {} time {}".format(order["status"],order['order_id'],datetime.now().time()))
+                if("REJECTED" in order['status']):
+                    return True
+                else: return False
+    except Exception as e:
+        logging.info("Error in getting kite orders: {}".format(e))
+
     return False
 
 
@@ -191,14 +212,8 @@ def place_order(symbol,direction,exchange,o_type,product,quantity):
                                     order_type=o_type,
                                     product=product)
         
-        # If the order was successful return the order id
-        if(order_status(order_id,"OPEN") or order_status(order_id,"COMPLETE")): 
-            logging.info("Order placed. ID is: {}".format(order_id))
-            return order_id
-        
-        else:
-            logging.info("Error {}".format(order_id))
-            return None
+        logging.info("Order ID is: {}".format(order_id))
+        return order_id
         
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
@@ -225,13 +240,8 @@ def place_sl_order(symbol,direction,exchange,o_type,product,quantity,price,trigg
                                     trigger_price=trigger_price)
         
         # If the order was successful return the order id
-        if(order_status(order_id,"OPEN") or order_status(order_id,"COMPLETE")): 
-            logging.info("Order placed. ID is: {}".format(order_id))
-            return order_id
-        
-        else:
-            logging.info("Error {}".format(order_id))
-            return None
+        logging.info("Order ID is: {}".format(order_id))
+        return order_id
         
     except Exception as e:
         logging.info("Order placement failed: {}".format(e))
@@ -270,6 +280,8 @@ trade_data={
     "PE_ATM_sell_order":None,"CE_ATM_sell_order":None
 }
 
+token_PE=None
+token_CE=None
 
 def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,quantity):
     global stoploss,percent,num_mod
@@ -279,9 +291,10 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
         limit=round(cur_price*(1+stoploss),1)
         trigger=round(limit*percent,1)
         if(LTP): buy_id=place_sl_order(tradingSym_ATM,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit,trigger)
+        if(rejected(buy_id)): buy_id=None
 
     elif(sl_reached==False):
-        not_triggered=order_status(buy_id,"TRIGGER PENDING")
+        not_triggered=order_not_triggered(buy_id,"TRIGGER PENDING")
         if(not_triggered==False): sl_reached=True
 
         else:
@@ -290,22 +303,25 @@ def buy_sl_order(buy_id,LTP,cur_price,tradingSym_ATM,limit,sl_reached,trigger,qu
             if(place_limit_order(cur_price,LTP) and buy_id!=None and not_triggered):
                 if(num_mod<23):
                     buy_id=kite.modify_order(order_id=buy_id, price=limit, trigger_price=trigger, variety=kite.VARIETY_REGULAR, order_type=kite.ORDER_TYPE_SL)
+                    if(rejected(buy_id)): buy_id=None
                     if(buy_id): 
                         LTP=cur_price
                         num_mod+=1
                 else:
                     temp_id=buy_id
                     buy_id=place_sl_order(tradingSym_ATM,"buy",kite_exchange,kite.ORDER_TYPE_SL,kite.PRODUCT_MIS,quantity,limit,trigger)
+                    if(rejected(buy_id)): buy_id=None
                     if(buy_id):
                         LTP=cur_price
                         cancelled_id=kite.cancel_order(variety=kite.VARIETY_REGULAR,order_id=str(temp_id))
                         logging.info("order cancelled {} temp_id {}".format(cancelled_id,temp_id))
+                    else: buy_id=temp_id
 
     return buy_id,LTP,limit,trigger,sl_reached
 
 def on_ticks(ws, ticks):
   print("tickers...")
-  global num_orders,num_mod,quantity,percent
+  global num_orders,num_mod,quantity,percent,token_PE,token_CE
   for tick in ticks:
       
     try:
@@ -318,12 +334,15 @@ def on_ticks(ws, ticks):
 
       if(is_current_time(trade_data['exit_hr'],trade_data['exit_min'])):
         if(tick['instrument_token']==instrument_syms[trade_data['token']]):
-            if(trade_data['PE_OTM_buy_order'] and trade_data['PE_OTM_sell_status']==False): 
+
+            if(trade_data['PE_OTM_sell_status']==False): 
                 PE_OTM_sell_order=place_order(trade_data['tradingSym_PE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                if(rejected(PE_OTM_sell_order)): PE_OTM_sell_order=None
                 if(PE_OTM_sell_order): trade_data['PE_OTM_sell_status']=True
 
-            if(trade_data['CE_OTM_buy_order'] and trade_data['CE_OTM_sell_status']==False): 
+            if(trade_data['CE_OTM_sell_status']==False): 
                 CE_OTM_sell_order=place_order(trade_data['tradingSym_CE_OTM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+                if(rejected(CE_OTM_sell_order)): CE_OTM_sell_order=None
                 if(CE_OTM_sell_order): trade_data['CE_OTM_sell_status']=True
         continue
       
@@ -358,6 +377,9 @@ def on_ticks(ws, ticks):
 
           if(trade_data['PE_OTM_buy_order']==None): trade_data['PE_OTM_buy_order']=place_order(trade_data['tradingSym_PE_OTM'],"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
           if(trade_data['CE_OTM_buy_order']==None): trade_data['CE_OTM_buy_order']=place_order(trade_data['tradingSym_CE_OTM'],"buy",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+          
+          if(rejected(trade_data['PE_OTM_buy_order'])): trade_data['PE_OTM_buy_order']=None
+          if(rejected(trade_data['CE_OTM_buy_order'])): trade_data['CE_OTM_buy_order']=None
 
           trade_data['PE_buy_id']=None
           trade_data['CE_buy_id']=None
@@ -369,19 +391,26 @@ def on_ticks(ws, ticks):
           trade_data['trigger_CE']=None
 
           if(trade_data['PE_OTM_buy_order'] and trade_data['CE_OTM_buy_order']):
+              
               if(trade_data['PE_ATM_sell_order']==None): trade_data['PE_ATM_sell_order']=place_order(trade_data['tradingSym_PE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
               if(trade_data['CE_ATM_sell_order']==None): trade_data['CE_ATM_sell_order']=place_order(trade_data['tradingSym_CE_ATM'],"sell",kite_exchange,kite.ORDER_TYPE_MARKET,kite.PRODUCT_MIS,quantity)
+              
+              if(rejected(trade_data['PE_ATM_sell_order'])): trade_data['PE_ATM_sell_order']=None
+              if(rejected(trade_data['CE_ATM_sell_order'])): trade_data['CE_ATM_sell_order']=None
+
               if(trade_data['PE_ATM_sell_order'] and trade_data['CE_ATM_sell_order']):
                   trade_data['sl_reached_PE']=False
                   trade_data['sl_reached_CE']=False
                   trade_data['PE_ATM_sell_order']=None
                   trade_data['CE_ATM_sell_order']=None
                   num_orders+=1
+                  token_PE=instrument_syms[trade_data['tradingSym_PE_ATM']]
+                  token_CE=instrument_syms[trade_data['tradingSym_CE_ATM']]
                 #   time.sleep(1)
           continue
-      
-      token_PE=instrument_syms[trade_data['tradingSym_PE_ATM']]
-      token_CE=instrument_syms[trade_data['tradingSym_CE_ATM']]
+    
+
+      if(token_PE==None or token_CE==None): continue
 
       if(tick['instrument_token']!=token_PE and tick['instrument_token']!=token_CE): 
           print("token: ",tick['instrument_token'])
@@ -392,8 +421,8 @@ def on_ticks(ws, ticks):
           cur_PE_price=tick['last_price'] #buy_id,LTP,limit,trigger,sl_reached
           print("PE cur price ",cur_PE_price," time- ",tick['exchange_timestamp'])
           trade_data['PE_buy_id'],trade_data['PE_LTP'],trade_data['limit_PE'],trade_data['trigger_PE'],trade_data['sl_reached_PE']=buy_sl_order(trade_data['PE_buy_id'],trade_data['PE_LTP'],cur_PE_price,trade_data['tradingSym_PE_ATM'],trade_data['limit_PE'],
-                                                                       trade_data['sl_reached_PE'],trade_data['trigger_PE'],quantity)
-          
+                                                                        trade_data['sl_reached_PE'],trade_data['trigger_PE'],quantity)
+            
           logging.info("PE_LTP {} limit_PE {} trigger_PE {} sl_reached_PE {}".format(trade_data['PE_LTP'],trade_data['limit_PE'],trade_data['trigger_PE'],trade_data['sl_reached_PE']))
 
       elif(tick['instrument_token']==token_CE): 
@@ -401,7 +430,8 @@ def on_ticks(ws, ticks):
           cur_CE_price=tick['last_price']
           print("CE cur price ",cur_CE_price," time- ",tick['exchange_timestamp'])
           trade_data['CE_buy_id'],trade_data['CE_LTP'],trade_data['limit_CE'],trade_data['trigger_CE'],trade_data['sl_reached_CE']=buy_sl_order(trade_data['CE_buy_id'],trade_data['CE_LTP'],cur_CE_price,trade_data['tradingSym_CE_ATM'],trade_data['limit_CE']
-                                                                       ,trade_data['sl_reached_CE'],trade_data['trigger_CE'],quantity)
+                                                                        ,trade_data['sl_reached_CE'],trade_data['trigger_CE'],quantity)
+            
           logging.info("CE_LTP {} limit_CE {} trigger_CE {} sl_reached_CE {}".format(trade_data['CE_LTP'],trade_data['limit_CE'],trade_data['trigger_CE'],trade_data['sl_reached_CE']))
 
     except Exception as e:

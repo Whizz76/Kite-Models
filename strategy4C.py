@@ -9,16 +9,14 @@ import multiprocessing
 
 logging.basicConfig(level=logging.DEBUG)
 
-index_data=pd.read_csv("Nifty_index.csv")
+index_data=pd.read_csv("outputData/BNF_index.csv")
 
-token="Nifty"
-round_range=50
+token="BNF"
+round_range=100
+# if token=='NIFTY' or token=="FINNIFTY": round_range=50
 
-
-filename="NIFTY_Data"
-
-# Path to the directory containing the unzipped data
-directory = "../Nifty/"
+filename="BNF_Data_80_100"
+directory = "../Data_BNF/Data_BNF/"
 
 
 # Updating the csv file
@@ -134,8 +132,10 @@ def get_reverse(test_date):
 
 # Number of numbers after hitting SL for both call and put
 # 3-10
-for i in range(1,6):
-    order_ranges.append(i)
+# for i in range(1,6):
+#     order_ranges.append(i)
+order_ranges.append(3)
+order_range=3
 # BNF2021081836100CE
 # Storing the time values
 
@@ -161,9 +161,8 @@ def is_exit_time(time,hr,mn):
     t=datetime.strptime(time,"%H:%M:%S")
     return t.hour>=hr and t.minute>=mn
 
-def limit_order(sorted_dates,filename,index_data,order_range):
-    
-    for stoploss_val in stoploss_values:
+def limit_order(sorted_dates,filename,index_data,stoploss_val):
+        global order_range
         stoploss=round(0.01*stoploss_val,2)
         for day in sorted_dates:
             for time_val1 in time_values1:
@@ -291,11 +290,13 @@ def limit_order(sorted_dates,filename,index_data,order_range):
 
 if __name__=="__main__":
     # print(sorted_dates)
-    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,1,))
-    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,2,))
-    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,3,))
-    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,4,))
-    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,5,))
+    start_t=time.time()
+    p1=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,80,))
+    p2=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,85,))
+    p3=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,90,))
+    p4=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,95,))
+    p5=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,100,))
+    #p6=multiprocessing.Process(target=limit_order,args=(sorted_dates,filename+'.csv',index_data,75,))
     
    
 
@@ -304,6 +305,7 @@ if __name__=="__main__":
     p3.start()
     p4.start()
     p5.start()
+    # p6.start()
     
 
     logging.info("Process started with pid %s",p1.pid)
@@ -311,6 +313,7 @@ if __name__=="__main__":
     logging.info("Process started with pid %s",p3.pid)
     logging.info("Process started with pid %s",p4.pid)
     logging.info("Process started with pid %s",p5.pid)
+    # logging.info("Process started with pid %s",p6.pid)
     
 
     p1.join()
@@ -318,8 +321,16 @@ if __name__=="__main__":
     p3.join()
     p4.join()
     p5.join()
-    
+    # p6.join()
+    end_t=time.time()
+    logging.info("Time taken for execution is %s",end_t-start_t)
+    file_name = "timeData2.txt"
 
+    # Open the file in write mode and store the result
+    with open(file_name, 'w') as file:
+        file.write(str(end_t-start_t))
+
+    print(f"Result has been stored in {file_name}")
 
                     
 
